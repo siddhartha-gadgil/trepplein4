@@ -11,13 +11,12 @@ import scala.runtime.ScalaRunTime
   * A name is a sequence of strings or numerals separated by dots, 
   * or an anonymous name.
   * 
-  * Note that two anonymous names are not equal.
   */
 sealed trait Name extends Product {
   override val hashCode: Int = ScalaRunTime._hashCode(this)
 
   /**
-    * Returns true if the two names are equal. However, two anonymous names are not equal.
+    * Returns true if the two names are equal.
     *
     * @param n1 the first name
     * @param n2 the second name
@@ -64,9 +63,7 @@ sealed trait Name extends Product {
   def dump: String 
 }
 
-/**
-  * The companion object of [[Name]].
-  * 
+/** 
   * A name can be constructed from a sequence of strings or numerals separated by dots,
   * or an anonymous name.
   * 
