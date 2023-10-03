@@ -49,6 +49,7 @@ class PrettyPrinter(
       case Max(a, b) => Parenable(0, "max" <+> pp(a).parens(1) </> pp(b).parens(1))
       case IMax(a, b) => Parenable(0, "imax" <+> pp(a).parens(1) </> pp(b).parens(1))
       case Param(param) => Parenable(MaxPrio, pp(param))
+      case _ => throw new Exception(s"level $level was not resolved as an offset, max, imax, or param")
     }
 
   def mkFreshName(suggestion: Name): Name = {
