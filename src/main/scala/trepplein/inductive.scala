@@ -2,6 +2,12 @@ package trepplein
 
 import trepplein.Level.Param
 
+/**
+ * Compiled inductive type declaration.
+ *
+ * @param indMod The original inductive type declaration.
+ * @param env The pre-environment in which the inductive type declaration is compiled.
+ */
 final case class CompiledIndMod(indMod: IndMod, env: PreEnvironment) extends CompiledModification {
   import indMod._
   val tc = new TypeChecker(env.addNow(decl))
@@ -9,13 +15,22 @@ final case class CompiledIndMod(indMod: IndMod, env: PreEnvironment) extends Com
 
   def name: Name = indMod.name
   def univParams: Vector[Param] = indMod.univParams
-  val indTy = Const(name, univParams)
+  /**
+    * The constant to be introduced for the type.
+    */
+  val indTy: Const = Const(name, univParams)
 
-  val ((params, indices), level) = ty match {
-    case NormalizedPis(doms, Sort(lvl)) =>
+  // Obtain parameters, indices and level of the inductive type
+  val ((params: List[LocalConst], indices: List[LocalConst]), level: Level) = ty match {
+    case NormalizedPis(doms: List[LocalConst], Sort(lvl: Level)) =>
       (doms.splitAt(numParams), lvl)
+    case _ => throw new IllegalArgumentException(s"Type $ty did not match as a NormalizedPis even with empty doms")
   }
-  val indTyWParams = Apps(indTy, params)
+
+  /**
+    * Inductive type with parameters (but not indices) applied.
+    */
+  val indTyWParams: Expr = Apps(indTy, params)
 
   case class CompiledIntro(name: Name, ty: Expr) {
     val NormalizedPis(arguments, Apps(introType, introTyArgs)) = NormalizedPis.instantiate(ty, params)
@@ -132,9 +147,18 @@ final case class CompiledIndMod(indMod: IndMod, env: PreEnvironment) extends Com
   }
 }
 
+/**
+ * Inductive type declaration.
+ *
+ * @param name Name of the inductive type.
+ * @param univParams Universe parameters.
+ * @param ty Type of the inductive type.
+ * @param numParams Number of parameters (as distinct from indices).
+ * @param intros Names and types of the introduction rules.
+ */
 final case class IndMod(name: Name, univParams: Vector[Level.Param], ty: Expr,
     numParams: Int, intros: Vector[(Name, Expr)]) extends Modification {
-  val decl = Declaration(name, univParams, ty, builtin = true)
+  val decl: Declaration = Declaration(name, univParams, ty, builtin = true)
 
-  def compile(env: PreEnvironment) = CompiledIndMod(this, env)
+  def compile(env: PreEnvironment): CompiledIndMod = CompiledIndMod(this, env)
 }

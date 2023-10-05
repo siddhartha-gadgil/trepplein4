@@ -14,6 +14,7 @@ libraryDependencies += "org.specs2" %% "specs2-core" % "4.20.2" % "test"
 
 scalacOptions ++= Seq("-opt:l:inline", "-opt-inline-from:**", "-opt-warnings", "-deprecation")
 
+
 enablePlugins(JavaAppPackaging)
 javaOptions in Universal ++= Seq("-J-Xss30m")
 

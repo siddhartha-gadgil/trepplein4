@@ -109,15 +109,15 @@ private class ExprEqCache extends java.util.IdentityHashMap[Expr, UFNode] {
 private object Breadcrumb
 
 /**
-  * A kernel expression which represents a term in Lean. Terms include types, propositions, proofs and universes.
-  * The expression may contain local constants, which are bound by lambda-definitions and pi-types, and also global
-  * constants, which depend on the environment. Besides substituting constants, expressions can be definitionally
-  * equal if they are related by a sequence of reduction rules.
-  *
-  * @param varBound bound on the de Bruijn indices of variables.
-  * @param hasLocals whether the expression has local constants.
-  * @param hashCode the hash code of the expression.
-  */
+ * A kernel expression which represents a term in Lean. Terms include types, propositions, proofs and universes.
+ * The expression may contain local constants, which are bound by lambda-definitions and pi-types, and also global
+ * constants, which depend on the environment. Besides substituting constants, expressions can be definitionally
+ * equal if they are related by a sequence of reduction rules.
+ *
+ * @param varBound bound on the de Bruijn indices of variables.
+ * @param hasLocals whether the expression has local constants.
+ * @param hashCode the hash code of the expression.
+ */
 sealed abstract class Expr(
     val varBound: Int,
     val hasLocals: Boolean,
@@ -569,22 +569,40 @@ object Let {
     Let(x.of, v, b.abstr(x))
 }
 
+/**
+ * For constructing and pattern matching lambda-definitions,
+ * with the variable as a local constant instead of a binding.
+ */
 object Lam extends Binder[Lam] {
   val generic: GenericUnapply = {
     case e: Lam => Lam.unapply(e)
     case _ => None
   }
 }
+
+/**
+ * For constructing and pattern matching (iterated) lambda-definitions,
+ * with variables as a local constants.
+ */
 object Lams extends Binders[Lam] {
   protected val Single = Lam
 }
 
+/**
+ * For constructing and pattern matching Pi-types,
+ * with the variable as a local constant instead of a binding.
+ */
 object Pi extends Binder[Pi] {
   val generic: GenericUnapply = {
     case e: Pi => Pi.unapply(e)
     case _ => None
   }
 }
+
+/**
+ * For constructing and pattern matching (iterated) Pi-types,
+ * with variables as a local constants.
+ */
 object Pis extends Binders[Pi] {
   protected val Single = Pi
 }

@@ -16,6 +16,12 @@ class TypeChecker(val env: PreEnvironment, val unsafeUnchecked: Boolean = false)
   def shouldCheck: Boolean = !unsafeUnchecked
 
   object NormalizedPis {
+    /**
+      * Maximal match with pi-types allowing normalization by `whnf`.
+      *
+      * @param e the expression to match.
+      * @return list of variables and the body of the pi-type.
+      */
     def unapply(e: Expr): Some[(List[LocalConst], Expr)] =
       whnf(e) match {
         case Pis(lcs1, f) if lcs1.nonEmpty =>
@@ -24,6 +30,15 @@ class TypeChecker(val env: PreEnvironment, val unsafeUnchecked: Boolean = false)
         case f => Some((Nil, f))
       }
 
+      /**
+        * Instantiates an iterated pi-type (allowing normalization by `whnf`) with a list of expressions
+        * for the pi-type variables and a context with the remaining variables.
+        *
+        * @param e The expressio to instantiate.
+        * @param ts The list of expressions to instantiate with for variables of the pi-type.
+        * @param ctx The context to instantiate with for the remaining variables.
+        * @return
+        */
     @tailrec def instantiate(e: Expr, ts: List[Expr], ctx: List[Expr] = Nil): Expr =
       (e, ts) match {
         case (Pi(_, body), t :: ts_) =>
