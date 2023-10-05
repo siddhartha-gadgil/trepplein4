@@ -13,6 +13,15 @@ private object NoReductionRuleCache extends ReductionRuleCache {
   override def instantiation(rr: ReductionRule, subst: Map[Param, Level], v: => Expr): Expr = v
 }
 
+/**
+  * A reduction rule. The `apply` method applies the rule to an expression and returns an `Option` of the result
+  * together with a list of definitional equalities that need to be checked for the reduction to be valid.
+  *
+  * @param ctx The context of the rule, i.e., the local declarations that are bound in the rule.
+  * @param lhs The general left-hand side of the rule. This can have variables, which are substituted in a reduction.
+  * @param rhs The general right-hand side of the rule.
+  * @param defEqConstraints The general definitional equalities that need to be checked for the reduction to be valid.
+  */
 final case class ReductionRule(ctx: Vector[Binding], lhs: Expr, rhs: Expr, defEqConstraints: List[(Expr, Expr)]) {
   require(!lhs.hasLocals)
   require(!rhs.hasLocals)
@@ -69,11 +78,26 @@ final case class ReductionRule(ctx: Vector[Binding], lhs: Expr, rhs: Expr, defEq
   override val hashCode: Int = ScalaRunTime._hashCode(this)
 }
 object ReductionRule {
+  /**
+    * Build reduction rules using local constants in place of bindings in the context.
+    *
+    * @param lcs The local constants to use.
+    * @param lhs The general left-hand side of the rule. This can have variables, which are substituted in a reduction.
+    * @param rhs The general right-hand side of the rule.
+    * @param defEqConstraints The general definitional equalities that need to be checked for the reduction to be valid.
+    * @param dummy Dummy implicit to avoid ambiguity with the other `apply` method.
+    * @return The reduction rule.
+    */
   def apply(lcs: Vector[LocalConst], lhs: Expr, rhs: Expr, defEqConstraints: List[(Expr, Expr)])(implicit dummy: DummyImplicit): ReductionRule =
     ReductionRule(lcs.map(_.of), lhs.abstr(0, lcs), rhs.abstr(0, lcs),
       defEqConstraints.map { case (a, b) => a.abstr(0, lcs) -> b.abstr(0, lcs) })
 }
 
+/**
+  * A map from constant names to reduction rules and sets of major arguments.
+  *
+  * @param keyMap The map from constant names to pairs of reduction rules and sets of major arguments.
+  */
 final class ReductionMap private (keyMap: Map[Name, (Vector[ReductionRule], Set[Int])]) {
   def +(reductionRule: ReductionRule): ReductionMap = {
     val (rs, ms) = keyMap(reductionRule.lhsConst)
