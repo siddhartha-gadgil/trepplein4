@@ -95,6 +95,8 @@ eqIndComp.rules(0).defEqConstraints.size
 for (i <- eqIndComp.rules(0).defEqConstraints) println(i)
 eqIndComp.compiledIntros.map(_.arguments)
 
+eqIndComp.kIntroRule
+
 natIndComp.compiledIntros.map(_.arguments)
 println(natIndComp.compiledIntros(0).ty)
 println(natIndComp.compiledIntros(0).arguments)
@@ -108,7 +110,20 @@ println(natIndComp.compiledIntros(1).introTyArgs)
 println(natIndComp.compiledIntros(0).ihs)
 println(natIndComp.compiledIntros(1).ihs)
 print(natIndComp.compiledIntros(1).ihs(0).of.ty)
+natIndComp.compiledIntros(1).argInfos
+natIndComp.compiledIntros(0).argInfos
+natIndComp.compiledIntros(1).argInfos(0).toOption.get._1.size
+natIndComp.compiledIntros(1).ihs
 
+println(natIndComp.compiledIntros(1).minorPremise.of.ty)
+println(natIndComp.compiledIntros(0).minorPremise.of.ty)
+println(natIndComp.compiledIntros(0).minorPremise)
+
+println(natIndComp.majorPremise.of.ty)
+println(natIndComp.majorPremise)
+
+
+println(natIndComp.compiledIntros(1).ihs)
 
 import natIndComp._
 tc.NormalizedPis.instantiate(compiledIntros(1).ty, params)
