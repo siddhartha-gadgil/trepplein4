@@ -1,5 +1,13 @@
 package trepplein
 
+/**
+  * Quotient types. These are part of the foundations of Lean. Concretely:
+  *  
+  *   - Given a type `A` and a relation `R` on `A`, we define the quotient type.
+  *   - We have a function `mk : A → quot R` that sends `a` to the equivalence class of `a`.
+  *   - We have an `induction` function that allows us to define (dependent) functions on `quot R` by defining on representatives.
+  *   - We have a `lift` function that defines (dependent) functions on the quotient given functions on `A` invariant under `R`.
+  */
 object quotient {
   val univParams = Vector(Level.Param(Name("u")))
   val A = LocalConst(Binding(Name("A"), Sort(univParams(0)), BinderInfo.Implicit))
