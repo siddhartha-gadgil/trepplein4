@@ -255,7 +255,7 @@ class TypeChecker(val env: PreEnvironment, val unsafeUnchecked: Boolean = false)
           case (_, Nil) => fnt.instantiate(0, ctx.toVector)
           case (Pi(dom, body), a :: as_) =>
             if (shouldCheck) checkType(a, dom.ty.instantiate(0, ctx.toVector))
-            go(body, as_, a :: ctx)
+            go(body, as_, a :: ctx) // should we be instantiating here?
           case (_, _ :: _) =>
             whnf(fnt.instantiate(0, ctx.toVector)) match {
               case fnt_ @ Pi(_, _) => go(fnt_, as, Nil)
