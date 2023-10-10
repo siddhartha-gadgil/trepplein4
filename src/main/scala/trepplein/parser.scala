@@ -190,6 +190,8 @@ private final class LinesParser(textExportParser: TextExportParser, bytes: Array
         val v = spc(exprRef())
         val e = spc(exprRef())
         Let(Binding(n, t, BinderInfo.Default), v, e)
+      case 'J' =>
+        ??? // TODO implement projections
     }
 
   def univParams(): Vector[Level.Param] =
