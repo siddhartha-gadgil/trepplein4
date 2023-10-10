@@ -296,6 +296,8 @@ sealed abstract class Expr(
           body.instantiateCore(subst))
       case Proj(typeName, idx, struct) =>
         Proj(typeName, idx, struct.instantiateCore(subst))
+      case NatLit(n) => NatLit(n)
+      case StringLit(s) => StringLit(s)
     }
 
   final def foreach_(f: Predicate[Expr]): Unit =
@@ -315,7 +317,8 @@ sealed abstract class Expr(
         body.foreach_(f)
       case Proj(typeName, idx, struct) =>
         struct.foreach_(f)
-      case _: Var | _: Const | _: Sort | _: LocalConst =>
+      case _: Var | _: Const | _: Sort | _: LocalConst | _: NatLit | _: StringLit =>
+
     }
 
   @inline final def foreachNoDups(f: Expr => Unit): Unit = {
@@ -404,6 +407,8 @@ sealed abstract class Expr(
         s"Let(${dom.dump}, ${value.dump}, ${body.dump})"
       case Proj(typeName, idx, struct) =>
         s"Proj(${typeName.dump}, $idx, ${struct.dump})"
+      case NatLit(n) => s"NatLit($n)"
+      case StringLit(s) => s"StringLit($s)"
     }
 }
 
@@ -511,6 +516,17 @@ case class Proj(typeName: Name, idx: Int, struct: Expr) extends Expr(
   varBound = struct.varBound,
   hasLocals = struct.hasLocals,
   hashCode = 5 + 37 * (typeName.hashCode + 37 * idx) + struct.hashCode)
+
+case class NatLit(n: Int) extends Expr(
+  varBound = 0,
+  hasLocals = false,
+  hashCode = 6 + 37 * n)
+
+case class StringLit(s: String) extends Expr(
+  varBound = 0,
+  hasLocals = false,
+  hashCode = 7 + 37 * s.hashCode)
+
 object Sort {
 
   /**

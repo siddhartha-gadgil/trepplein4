@@ -7,7 +7,8 @@ import scala.annotation.tailrec
 import scala.collection.mutable
 
 sealed trait ExportFileCommand
-case class ExportedModification(modification: Modification) extends ExportFileCommand
+case class ExportedModification(modification: Modification)
+  extends ExportFileCommand
 case class ExportedNotation(notation: Notation) extends ExportFileCommand
 
 private class TextExportParser {
@@ -18,7 +19,11 @@ private class TextExportParser {
   name += Name.Anon
   level += Level.Zero
 
-  @tailrec final def write[T](b: mutable.ArrayBuffer[T], i: Int, t: T, default: T): Unit =
+  @tailrec final def write[T](
+    b: mutable.ArrayBuffer[T],
+    i: Int,
+    t: T,
+    default: T): Unit =
     b.size match {
       case `i` => b += t
       case s if s < i =>
@@ -29,12 +34,16 @@ private class TextExportParser {
     }
 }
 
-private final class LinesParser(textExportParser: TextExportParser, bytes: Array[Byte], end: Int) {
+private final class LinesParser(
+    textExportParser: TextExportParser,
+    bytes: Array[Byte],
+    end: Int) {
   import textExportParser._
 
   var index = 0
   def hasNext(): Boolean = index < end
   def cur(): Char = bytes(index).toChar
+  def lookahead(): Char = bytes(index + 1).toChar
   def next(): Char = {
     if (!hasNext()) throw new IndexOutOfBoundsException
     val c = cur()
@@ -42,8 +51,13 @@ private final class LinesParser(textExportParser: TextExportParser, bytes: Array
     c
   }
 
-  def consume(c: Char): Unit = if (next() != c)
-    throw new IllegalArgumentException(s"expected $c (i.e., ${c.toInt}), got ${cur()} (i.e., ${cur().toInt}); ${c != cur()}, check: ${c.toInt == cur().toInt}")
+  def consume(c: Char): Unit =
+    {
+      val nxt = next()
+      if (nxt != c)
+        throw new IllegalArgumentException(
+          s"expected `$c`, got `${nxt}` after `${bytes(index - 2).toChar}`")
+    }
   def consume(s: String): Unit = s.foreach(consume)
 
   def lines(): Vector[ExportFileCommand] = {
@@ -86,7 +100,8 @@ private final class LinesParser(textExportParser: TextExportParser, bytes: Array
             next() match {
               case 'F' =>
                 consume("IX ")
-                Some(ExportedNotation(Infix(nameRef(), spc(num()), spc(rest()))))
+                Some(
+                  ExportedNotation(Infix(nameRef(), spc(num()), spc(rest()))))
               case 'D' =>
                 val numParams = spc(num())
                 val n = spc(nameRef())
@@ -94,18 +109,28 @@ private final class LinesParser(textExportParser: TextExportParser, bytes: Array
                 val numIntros = spc(num())
                 val rest = restOf(num())
                 val (intros, ps) = rest.splitAt(2 * numIntros)
-                Some(ExportedModification(IndMod(
-                  n, ps.view.map(name).map(Level.Param).toVector, t,
-                  numParams, intros.grouped(2).map { case Seq(in, it) => (name(in), expr(it)) }.toVector)))
+                Some(
+                  ExportedModification(
+                    IndMod(
+                      n,
+                      ps.view.map(name).map(Level.Param).toVector,
+                      t,
+                      numParams,
+                      intros
+                        .grouped(2)
+                        .map { case Seq(in, it) => (name(in), expr(it)) }
+                        .toVector)))
             }
           case 'P' =>
             next() match {
               case 'R' =>
                 consume("EFIX ")
-                Some(ExportedNotation(Prefix(nameRef(), spc(num()), spc(rest()))))
+                Some(
+                  ExportedNotation(Prefix(nameRef(), spc(num()), spc(rest()))))
               case 'O' =>
                 consume("STFIX ")
-                Some(ExportedNotation(Postfix(nameRef(), spc(num()), spc(rest()))))
+                Some(
+                  ExportedNotation(Postfix(nameRef(), spc(num()), spc(rest()))))
             }
         }
     }
@@ -174,11 +199,20 @@ private final class LinesParser(textExportParser: TextExportParser, bytes: Array
       case 'A' =>
         App(spc(exprRef()), spc(exprRef()))
       case 'L' =>
-        val b = spc(binderInfo())
-        val n = spc(nameRef())
-        val d = spc(exprRef())
-        val e = spc(exprRef())
-        Lam(Binding(n, d, b), e)
+        cur() match {
+          case 'N' =>
+            val n = spc(num())
+            NatLit(n)
+          case c =>
+            println(s"EL case with `$c`")
+            val b = spc(binderInfo())
+            println("Got binder info")
+            val n = spc(nameRef())
+            val d = spc(exprRef())
+            val e = spc(exprRef())
+            println("Got exprs")
+            Lam(Binding(n, d, b), e)
+        }
       case 'P' =>
         val b = spc(binderInfo())
         val n = spc(nameRef())
@@ -206,7 +240,10 @@ object LinesParser {
 }
 
 object TextExportParser {
-  @tailrec private def reverseIndexOf(chunk: Array[Byte], needle: Byte, from: Int): Int =
+  @tailrec private def reverseIndexOf(
+    chunk: Array[Byte],
+    needle: Byte,
+    from: Int): Int =
     if (chunk(from) == needle) from
     else if (from == 0) -1
     else reverseIndexOf(chunk, needle, from - 1)
@@ -216,7 +253,8 @@ object TextExportParser {
     case class Chunk(bytes: Array[Byte], endIndex: Int)
     def readChunksCore(buf: Array[Byte], begin: Int): LazyList[Chunk] = {
       val len = in.read(buf, begin, buf.length - begin)
-      if (len <= 0) LazyList.empty else {
+      if (len <= 0) LazyList.empty
+      else {
         val nl = reverseIndexOf(buf, '\n', begin + len - 1)
         if (nl == -1) {
           // no newline found in the whole chunk,
@@ -230,10 +268,13 @@ object TextExportParser {
         }
       }
     }
-    def readChunks(): LazyList[Chunk] = readChunksCore(new Array[Byte](bufSize), 0)
+    def readChunks(): LazyList[Chunk] =
+      readChunksCore(new Array[Byte](bufSize), 0)
     val parser = new TextExportParser
-    readChunks().flatMap(chunk => new LinesParser(parser, chunk.bytes, chunk.endIndex).lines())
+    readChunks().flatMap(chunk =>
+      new LinesParser(parser, chunk.bytes, chunk.endIndex).lines())
   }
 
-  def parseFile(fn: String): LazyList[ExportFileCommand] = parseStream(new FileInputStream(fn))
+  def parseFile(fn: String): LazyList[ExportFileCommand] = parseStream(
+    new FileInputStream(fn))
 }
