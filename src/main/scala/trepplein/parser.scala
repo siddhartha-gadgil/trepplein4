@@ -42,7 +42,8 @@ private final class LinesParser(textExportParser: TextExportParser, bytes: Array
     c
   }
 
-  def consume(c: Char): Unit = if (next() != c) throw new IllegalArgumentException(s"expected $c, got ${cur()}")
+  def consume(c: Char): Unit = if (next() != c)
+    throw new IllegalArgumentException(s"expected $c (i.e., ${c.toInt}), got ${cur()} (i.e., ${cur().toInt}); ${c != cur()}, check: ${c.toInt == cur().toInt}")
   def consume(s: String): Unit = s.foreach(consume)
 
   def lines(): Vector[ExportFileCommand] = {
@@ -191,7 +192,10 @@ private final class LinesParser(textExportParser: TextExportParser, bytes: Array
         val e = spc(exprRef())
         Let(Binding(n, t, BinderInfo.Default), v, e)
       case 'J' =>
-        ??? // TODO implement projections
+        val t = spc(nameRef())
+        val n = spc(num())
+        val e = spc(exprRef())
+        Proj(t, n, e)
     }
 
   def univParams(): Vector[Level.Param] =

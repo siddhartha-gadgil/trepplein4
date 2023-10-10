@@ -294,6 +294,8 @@ sealed abstract class Expr(
           domain.copy(ty = domain.ty.instantiateCore(subst)),
           value.instantiateCore(subst),
           body.instantiateCore(subst))
+      case Proj(typeName, idx, struct) =>
+        Proj(typeName, idx, struct.instantiateCore(subst))
     }
 
   final def foreach_(f: Predicate[Expr]): Unit =
@@ -311,6 +313,8 @@ sealed abstract class Expr(
         domain.ty.foreach_(f)
         value.foreach_(f)
         body.foreach_(f)
+      case Proj(typeName, idx, struct) =>
+        struct.foreach_(f)
       case _: Var | _: Const | _: Sort | _: LocalConst =>
     }
 
@@ -398,6 +402,8 @@ sealed abstract class Expr(
         s"LocalConst(${of.dump}, $n)"
       case Let(dom, value, body) =>
         s"Let(${dom.dump}, ${value.dump}, ${body.dump})"
+      case Proj(typeName, idx, struct) =>
+        s"Proj(${typeName.dump}, $idx, ${struct.dump})"
     }
 }
 
@@ -501,6 +507,10 @@ case class Let(domain: Binding, value: Expr, body: Expr)
     hashCode =
       3 + 37 * (domain.hashCode + 37 * value.hashCode) + body.hashCode)
 
+case class Proj(typeName: Name, idx: Int, struct: Expr) extends Expr(
+  varBound = struct.varBound,
+  hasLocals = struct.hasLocals,
+  hashCode = 5 + 37 * (typeName.hashCode + 37 * idx) + struct.hashCode)
 object Sort {
 
   /**
