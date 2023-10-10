@@ -50,13 +50,14 @@ private final class LinesParser(
     index += 1
     c
   }
+  def skip(): Unit = index += 1
 
   def consume(c: Char): Unit =
     {
       val nxt = next()
       if (nxt != c)
         throw new IllegalArgumentException(
-          s"expected `$c`, got `${nxt}` after `${bytes(index - 2).toChar}`")
+          s"expected `$c`, got `${nxt} = ${bytes(index - 1).toChar}` after `${bytes(index - 3).toChar}${bytes(index - 2).toChar}`")
     }
   def consume(s: String): Unit = s.foreach(consume)
 
@@ -201,16 +202,14 @@ private final class LinesParser(
       case 'L' =>
         cur() match {
           case 'N' =>
+            skip()
             val n = spc(num())
             NatLit(n)
           case c =>
-            println(s"EL case with `$c`")
             val b = spc(binderInfo())
-            println("Got binder info")
             val n = spc(nameRef())
             val d = spc(exprRef())
             val e = spc(exprRef())
-            println("Got exprs")
             Lam(Binding(n, d, b), e)
         }
       case 'P' =>
