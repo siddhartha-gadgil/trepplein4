@@ -213,6 +213,9 @@ class PrettyPrinter(
             }
           case (fn, as) => printDefault(fn, as)
         }
+      case NatLit(n) => Parenable(MaxPrio, s"n")
+      case StringLit(s) => Parenable(MaxPrio, s""""$s"""")
+      case Proj(typeName, idx, struct) => ??? // TODO
     }
 
   def parseParams[T](ty: Expr, value: Expr)(f: (List[ParsedBinder], List[ParsedBinder], Expr, Expr) => T): T =

@@ -294,6 +294,10 @@ sealed abstract class Expr(
           domain.copy(ty = domain.ty.instantiateCore(subst)),
           value.instantiateCore(subst),
           body.instantiateCore(subst))
+      case Proj(typeName, idx, struct) =>
+        Proj(typeName, idx, struct.instantiateCore(subst))
+      case NatLit(n) => NatLit(n)
+      case StringLit(s) => StringLit(s)
     }
 
   final def foreach_(f: Predicate[Expr]): Unit =
@@ -311,7 +315,10 @@ sealed abstract class Expr(
         domain.ty.foreach_(f)
         value.foreach_(f)
         body.foreach_(f)
-      case _: Var | _: Const | _: Sort | _: LocalConst =>
+      case Proj(typeName, idx, struct) =>
+        struct.foreach_(f)
+      case _: Var | _: Const | _: Sort | _: LocalConst | _: NatLit | _: StringLit =>
+
     }
 
   @inline final def foreachNoDups(f: Expr => Unit): Unit = {
@@ -398,6 +405,10 @@ sealed abstract class Expr(
         s"LocalConst(${of.dump}, $n)"
       case Let(dom, value, body) =>
         s"Let(${dom.dump}, ${value.dump}, ${body.dump})"
+      case Proj(typeName, idx, struct) =>
+        s"Proj(${typeName.dump}, $idx, ${struct.dump})"
+      case NatLit(n) => s"NatLit($n)"
+      case StringLit(s) => s"StringLit($s)"
     }
 }
 
@@ -500,6 +511,21 @@ case class Let(domain: Binding, value: Expr, body: Expr)
     hasLocals = domain.ty.hasLocals || value.hasLocals || body.hasLocals,
     hashCode =
       3 + 37 * (domain.hashCode + 37 * value.hashCode) + body.hashCode)
+
+case class Proj(typeName: Name, idx: Int, struct: Expr) extends Expr(
+  varBound = struct.varBound,
+  hasLocals = struct.hasLocals,
+  hashCode = 5 + 37 * (typeName.hashCode + 37 * idx) + struct.hashCode)
+
+case class NatLit(n: Int) extends Expr(
+  varBound = 0,
+  hasLocals = false,
+  hashCode = 6 + 37 * n)
+
+case class StringLit(s: String) extends Expr(
+  varBound = 0,
+  hasLocals = false,
+  hashCode = 7 + 37 * s.hashCode)
 
 object Sort {
 
