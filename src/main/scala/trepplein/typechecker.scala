@@ -290,5 +290,7 @@ class TypeChecker(val env: PreEnvironment, val unsafeUnchecked: Boolean = false)
       if (shouldCheck) inferUniverseOfType(domain.ty)
       if (shouldCheck) checkType(value, domain.ty)
       infer(body.instantiate(value))
+    case NatLit(n) =>
+      Const(Name("Nat"), Vector(Level.One))
   })
 }

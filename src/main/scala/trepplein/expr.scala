@@ -131,9 +131,9 @@ sealed abstract class Expr(
       case Pi(dom, body) => dom.ty.hasVar(i) || body.hasVar(i + 1)
       case Let(dom, value, body) =>
         dom.ty.hasVar(i) || value.hasVar(i) || body.hasVar(i + 1)
-      case expr =>
-        throw new IllegalArgumentException(
-          s"hasVar($i) called on $expr which has varBound $varBound greater than $i")
+      // case expr =>
+      //   throw new IllegalArgumentException(
+      //     s"hasVar($i) called on $expr which has varBound $varBound greater than $i")
     }
   }
 
@@ -258,9 +258,9 @@ sealed abstract class Expr(
           domain.copy(ty = domain.ty.instantiateCore(off, es)),
           value.instantiateCore(off, es),
           body.instantiateCore(off + 1, es))
-      case _ =>
-        throw new IllegalArgumentException(
-          s"instantiateCore($off, $es) called on $this which has varBound $varBound which is greater than offset $off")
+      // case _ =>
+      //   throw new IllegalArgumentException(
+      //     s"instantiateCore($off, $es) called on $this which has varBound $varBound which is greater than offset $off")
     }
 
   /**

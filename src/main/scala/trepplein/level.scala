@@ -133,6 +133,8 @@ object Level {
     def simplify: Level = Succ(level.simplify)
 
   }
+
+  val One = Succ(Zero)
   case class Max(a: Level, b: Level) extends Level {
     def dump: String = s"Level.Max(${a.dump}, ${b.dump})"
 

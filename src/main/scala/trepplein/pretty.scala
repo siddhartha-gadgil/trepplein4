@@ -196,13 +196,13 @@ class PrettyPrinter(
         val (group, rest) = splitListWhile(binders)(_.isForall)
         Parenable(
           0,
-          nest("∀" <+> wordwrap(telescope(group)) <> ",") </> pp(rest, inner)
+          nest("∀" <+> wordwrap(telescope(group)) <> " , ") <> pp(rest, inner)
             .parens(0))
       case b :: _ if b.isLambda =>
         val (group, rest) = splitListWhile(binders)(_.isLambda)
         Parenable(
           0,
-          nest("fun" <+> wordwrap(telescope(group)) <> "↦") </> pp(rest, inner)
+          nest("fun" <+> wordwrap(telescope(group)) <> " ↦ ") <> pp(rest, inner)
             .parens(0))
     }
 
