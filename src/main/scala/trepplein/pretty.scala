@@ -202,7 +202,7 @@ class PrettyPrinter(
         val (group, rest) = splitListWhile(binders)(_.isLambda)
         Parenable(
           0,
-          nest("λ" <+> wordwrap(telescope(group)) <> ",") </> pp(rest, inner)
+          nest("fun" <+> wordwrap(telescope(group)) <> "↦") </> pp(rest, inner)
             .parens(0))
     }
 
