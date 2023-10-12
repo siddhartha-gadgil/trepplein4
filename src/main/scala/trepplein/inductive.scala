@@ -180,21 +180,12 @@ final case class CompiledIndMod(indMod: IndMod, env: PreEnvironment)
     Vector(elimLevel).collect { case p: Level.Param => p }
 
   /**
-   * Whether to use dependent elimination. This is done unless the elimination
-   * type is a proposition.
-   */
-  val useDepElim: Boolean = level.maybeNonZero
-
-  /**
    * The motive type for the elimination type.
    */
   val motiveType: Expr =
-    if (useDepElim)
-      Pis(
-        indices :+ LocalConst(
-          Binding("c", Apps(indTy, params ++ indices), BinderInfo.Default)))(Sort(elimLevel))
-    else
-      Pis(indices)(Sort(elimLevel))
+    Pis(
+      indices :+ LocalConst(
+        Binding("c", Apps(indTy, params ++ indices), BinderInfo.Default)))(Sort(elimLevel))
 
   /**
    * Variable for the motive.
@@ -213,7 +204,7 @@ final case class CompiledIndMod(indMod: IndMod, env: PreEnvironment)
    *   the motive expression
    */
   def mkMotiveApp(indices: Seq[Expr], e: Expr): Expr =
-    if (useDepElim) App(Apps(motive, indices), e) else Apps(motive, indices)
+    App(Apps(motive, indices), e)
 
   /**
    * The minor premises for the introduction rules.

@@ -4,7 +4,8 @@ import scala.annotation.tailrec
 import scala.collection.mutable
 
 sealed trait DefEqRes {
-  @inline final def &(that: => DefEqRes): DefEqRes = if (this != IsDefEq) this else that
+  @inline final def &(that: => DefEqRes): DefEqRes =
+    if (this != IsDefEq) this else that
 }
 case object IsDefEq extends DefEqRes {
   def forall(rs: Iterable[DefEqRes]): DefEqRes =
@@ -12,15 +13,20 @@ case object IsDefEq extends DefEqRes {
 }
 final case class NotDefEq(a: Expr, b: Expr) extends DefEqRes
 
-class TypeChecker(val env: PreEnvironment, val unsafeUnchecked: Boolean = false) {
+class TypeChecker(
+    val env: PreEnvironment,
+    val unsafeUnchecked: Boolean = false) {
   def shouldCheck: Boolean = !unsafeUnchecked
 
   object NormalizedPis {
+
     /**
      * Maximal match with pi-types allowing normalization by `whnf`.
      *
-     * @param e the expression to match.
-     * @return list of variables and the body of the pi-type.
+     * @param e
+     *   the expression to match.
+     * @return
+     *   list of variables and the body of the pi-type.
      */
     def unapply(e: Expr): Some[(List[LocalConst], Expr)] =
       whnf(e) match {
@@ -31,15 +37,23 @@ class TypeChecker(val env: PreEnvironment, val unsafeUnchecked: Boolean = false)
       }
 
     /**
-     * Instantiates an iterated pi-type (allowing normalization by `whnf`) with a list of expressions
-     * for the pi-type variables and a context with the remaining variables.
+     * Instantiates an iterated pi-type (allowing normalization by `whnf`) with
+     * a list of expressions for the pi-type variables and a context with the
+     * remaining variables.
      *
-     * @param e The expressio to instantiate.
-     * @param ts The list of expressions to instantiate with for variables of the pi-type.
-     * @param ctx The context to instantiate with for the remaining variables.
+     * @param e
+     *   The expressio to instantiate.
+     * @param ts
+     *   The list of expressions to instantiate with for variables of the
+     *   pi-type.
+     * @param ctx
+     *   The context to instantiate with for the remaining variables.
      * @return
      */
-    @tailrec def instantiate(e: Expr, ts: List[Expr], ctx: List[Expr] = Nil): Expr =
+    @tailrec def instantiate(
+      e: Expr,
+      ts: List[Expr],
+      ctx: List[Expr] = Nil): Expr =
       (e, ts) match {
         case (Pi(_, body), t :: ts_) =>
           instantiate(body, ts_, t :: ctx)
@@ -87,7 +101,8 @@ class TypeChecker(val env: PreEnvironment, val unsafeUnchecked: Boolean = false)
       red2 orElse red1
   }
 
-  private val lcCache = mutable.AnyRefMap[Expr, List[LocalConst]]().withDefaultValue(Nil)
+  private val lcCache =
+    mutable.AnyRefMap[Expr, List[LocalConst]]().withDefaultValue(Nil)
   private def popCachedLC(binding: Binding): LocalConst =
     lcCache(binding.ty) match {
       case cached :: rest =>
@@ -108,7 +123,10 @@ class TypeChecker(val env: PreEnvironment, val unsafeUnchecked: Boolean = false)
     val e2 @ Apps(fn2, as2) = whnfCore(e2_0)(transparency)
     def checkArgs: DefEqRes =
       reqDefEq(as1.size == as2.size, e1, e2) &
-        IsDefEq.forall(as1.lazyZip(as2).view.map { case (a, b) => checkDefEq(a, b) })
+        IsDefEq.forall(as1.lazyZip(as2).view.map {
+          case (a, b) =>
+            checkDefEq(a, b)
+        })
     ((fn1, fn2) match {
       case (Sort(l1), Sort(l2)) =>
         return reqDefEq(isDefEq(l1, l2) && as1.isEmpty && as2.isEmpty, e1, e2)
@@ -118,7 +136,8 @@ class TypeChecker(val env: PreEnvironment, val unsafeUnchecked: Boolean = false)
         checkArgs
       case (Lam(dom, b1), Lam(_, b2)) =>
         require(as1.isEmpty && as2.isEmpty)
-        return withLC(dom)(lc => checkDefEqCore(b1.instantiate(lc), b2.instantiate(lc)))
+        return withLC(dom)(lc =>
+          checkDefEqCore(b1.instantiate(lc), b2.instantiate(lc)))
       case (Lam(dom1, _), _) =>
         require(as1.isEmpty)
         return checkDefEqCore(e1, Lam(dom1, App(e2, Var(0))))
@@ -127,7 +146,8 @@ class TypeChecker(val env: PreEnvironment, val unsafeUnchecked: Boolean = false)
         return checkDefEqCore(Lam(dom2, App(e1, Var(0))), e2)
       case (Pi(dom1, b1), Pi(dom2, b2)) =>
         require(as1.isEmpty && as2.isEmpty)
-        return checkDefEq(dom1.ty, dom2.ty) & withLC(dom1)(lc => checkDefEqCore(b1.instantiate(lc), b2.instantiate(lc)))
+        return checkDefEq(dom1.ty, dom2.ty) & withLC(dom1)(lc =>
+          checkDefEqCore(b1.instantiate(lc), b2.instantiate(lc)))
       case (_, _) =>
         NotDefEq(e1, e2)
     }) match {
@@ -144,9 +164,12 @@ class TypeChecker(val env: PreEnvironment, val unsafeUnchecked: Boolean = false)
   private val defEqCache = mutable.AnyRefMap[(Expr, Expr), DefEqRes]()
   // requires that e1 and e2 have the same type, or are types
   def checkDefEq(e1: Expr, e2: Expr): DefEqRes =
-    if (e1.eq(e2) || e1 == e2) IsDefEq else defEqCache.getOrElseUpdate((e1, e2), {
-      if (isProofIrrelevantEq(e1, e2)) IsDefEq else checkDefEqCore(e1, e2)
-    })
+    if (e1.eq(e2) || e1 == e2) IsDefEq
+    else
+      defEqCache.getOrElseUpdate(
+        (e1, e2), {
+          if (isProofIrrelevantEq(e1, e2)) IsDefEq else checkDefEqCore(e1, e2)
+        })
 
   case class Transparency(rho: Boolean) {
     def canReduceConstants: Boolean = rho
@@ -158,18 +181,25 @@ class TypeChecker(val env: PreEnvironment, val unsafeUnchecked: Boolean = false)
   def reduceOneStep(e: Expr)(implicit transparency: Transparency): Option[Expr] =
     e match { case Apps(fn, as) => reduceOneStep(fn, as) }
   private implicit object reductionRuleCache extends ReductionRuleCache {
-    private val instantiationCache = mutable.AnyRefMap[(ReductionRule, Map[Level.Param, Level]), Expr]()
-    override def instantiation(rr: ReductionRule, subst: Map[Level.Param, Level], v: => Expr): Expr =
+    private val instantiationCache =
+      mutable.AnyRefMap[(ReductionRule, Map[Level.Param, Level]), Expr]()
+    override def instantiation(
+      rr: ReductionRule,
+      subst: Map[Level.Param, Level],
+      v: => Expr): Expr =
       instantiationCache.getOrElseUpdate((rr, subst), v)
   }
   def reduceOneStep(fn: Expr, as0: List[Expr])(implicit transparency: Transparency): Option[Expr] =
     fn match {
       case Const(n, _) if transparency.rho =>
         val major = env.reductions.major(n)
-        val as = for ((a, i) <- as0.zipWithIndex)
-          yield if (major(i)) whnf(a) else a
+        val as =
+          for ((a, i) <- as0.zipWithIndex)
+            yield if (major(i)) whnf(a) else a
         env.reductions(Apps(fn, as)) match {
-          case Some((result, constraints)) if constraints.forall { case (a, b) => isDefEq(a, b) } =>
+          case Some((result, constraints)) if constraints.forall {
+            case (a, b) => isDefEq(a, b)
+          } =>
             Some(result)
           case _ => None
         }
@@ -177,8 +207,10 @@ class TypeChecker(val env: PreEnvironment, val unsafeUnchecked: Boolean = false)
     }
 
   private val whnfCache = mutable.AnyRefMap[Expr, Expr]()
-  def whnf(e: Expr): Expr = whnfCache.getOrElseUpdate(e, whnfCore(e)(Transparency.all))
-  @tailrec final def whnfCore(e: Expr)(implicit transparency: Transparency = Transparency.all): Expr = {
+  def whnf(e: Expr): Expr =
+    whnfCache.getOrElseUpdate(e, whnfCore(e)(Transparency.all))
+  @tailrec final def whnfCore(
+    e: Expr)(implicit transparency: Transparency = Transparency.all): Expr = {
     val Apps(fn, as) = e
     fn match {
       case Sort(l) => Sort(l.simplify)
@@ -202,95 +234,118 @@ class TypeChecker(val env: PreEnvironment, val unsafeUnchecked: Boolean = false)
   def stuck(e: Expr): Option[Expr] = whnf(e) match {
     case Apps(Const(n, _), as) if env.reductions.get(n).nonEmpty =>
       val numAs = as.size
-      env.reductions.major(n).filter(_ < numAs).map(as(_)).flatMap(stuck).headOption
+      env.reductions
+        .major(n)
+        .filter(_ < numAs)
+        .map(as(_))
+        .flatMap(stuck)
+        .headOption
     case e_ => Some(e_)
   }
 
   def ppError(e: Expr): Doc =
-    new PrettyPrinter(Some(this), options = PrettyOptions(showImplicits = false)).pp(e).doc
+    new PrettyPrinter(
+      Some(this),
+      options = PrettyOptions(showImplicits = false)).pp(e).doc
 
-  def checkType(e: Expr, ty: Expr): Unit = {
+  def checkType(e: Expr, ty: Expr, message: String): Unit = {
     val inferredTy = infer(e)
     checkDefEq(ty, inferredTy) match {
       case IsDefEq =>
       case NotDefEq(t_, i_) =>
-        throw new IllegalArgumentException(Doc.stack(
-          Doc.spread("wrong type: ", ppError(e), " : ", ppError(ty)),
-          Doc.spread("inferred type: ", ppError(inferredTy)),
-          Doc.spread(ppError(t_), " !=def ", ppError(i_)),
-          Doc.spread(Seq[Doc]("stuck on: ") ++ Seq(t_, i_).flatMap(stuck).map(ppError)))
-          .render(80))
+        throw new IllegalArgumentException(
+          Doc
+            .stack(
+              Doc.spread("type error: " ++ message),
+              Doc.spread("wrong type: ", ppError(e), " : ", ppError(ty)),
+              Doc.spread("inferred type: ", ppError(inferredTy)),
+              Doc.spread(ppError(t_), " !=def ", ppError(i_)),
+              Doc.spread(
+                Seq[Doc]("stuck on: ") ++ Seq(t_, i_)
+                  .flatMap(stuck)
+                  .map(ppError)))
+            .render(80))
     }
   }
   def requireDefEq(a: Expr, b: Expr): Unit =
     checkDefEq(a, b) match {
       case IsDefEq =>
       case NotDefEq(a_, b_) =>
-        throw new IllegalArgumentException(Doc.stack("", ppError(a_), "!=def", ppError(b_)).render(80))
+        throw new IllegalArgumentException(
+          Doc.stack("", ppError(a_), "!=def", ppError(b_)).render(80))
     }
 
   def inferUniverseOfType(ty: Expr): Level =
     whnf(infer(ty)) match {
       case Sort(l) => l
-      case s => throw new IllegalArgumentException(Doc.spread("not a sort: ", ppError(s)).render(80))
+      case s =>
+        throw new IllegalArgumentException(
+          Doc.spread("not a sort: ", ppError(s)).render(80))
     }
 
   private val inferCache = mutable.AnyRefMap[Expr, Expr]()
-  def infer(e: Expr): Expr = inferCache.getOrElseUpdate(e, e match {
-    case Var(_) =>
-      throw new IllegalArgumentException
-    case Sort(level) =>
-      Sort(Level.Succ(level))
-    case Const(name, levels) =>
-      val decl = env(name)
-      require(
-        decl.univParams.size == levels.size,
-        s"incorrect number of universe parameters: $e, expected ${decl.univParams}")
-      decl.ty.instantiate(decl.univParams.zip(levels).toMap)
-    case LocalConst(of, _) =>
-      of.ty
-    case Apps(fn, as) if as.nonEmpty =>
-      @tailrec def go(fnt: Expr, as: List[Expr], ctx: List[Expr]): Expr =
-        (fnt, as) match {
-          case (_, Nil) => fnt.instantiate(0, ctx.toVector)
-          case (Pi(dom, body), a :: as_) =>
-            if (shouldCheck) checkType(a, dom.ty.instantiate(0, ctx.toVector))
-            go(body, as_, a :: ctx) // should we be instantiating here?
-          case (_, _ :: _) =>
-            whnf(fnt.instantiate(0, ctx.toVector)) match {
-              case fnt_ @ Pi(_, _) => go(fnt_, as, Nil)
-              case _ =>
-                throw new IllegalArgumentException(s"not a function type: $fnt")
-            }
+  def infer(e: Expr): Expr = inferCache.getOrElseUpdate(
+    e,
+    e match {
+      case Var(_) =>
+        throw new IllegalArgumentException
+      case Sort(level) =>
+        Sort(Level.Succ(level))
+      case Const(name, levels) =>
+        val decl = env(name)
+        require(
+          decl.univParams.size == levels.size,
+          s"incorrect number of universe parameters: $e, expected ${decl.univParams}")
+        decl.ty.instantiate(decl.univParams.zip(levels).toMap)
+      case LocalConst(of, _) =>
+        of.ty
+      case Apps(fn, as0) if as0.nonEmpty =>
+        @tailrec def go(fnt: Expr, as: List[Expr], ctx: List[Expr]): Expr =
+          (fnt, as) match {
+            case (_, Nil) => fnt.instantiate(0, ctx.toVector)
+            case (Pi(dom, body), a :: as_) =>
+              if (shouldCheck)
+                checkType(
+                  a,
+                  dom.ty.instantiate(0, ctx.toVector),
+                  s"within (type of `$fn`)  Pi-type `${dom}, ${body}` in `${fnt.toString().replace("\n", " ")}`; context: $ctx; args: $as; $as0; checking $e")
+              go(body, as_, a :: ctx) // should we be instantiating here?
+            case (_, _ :: _) =>
+              whnf(fnt.instantiate(0, ctx.toVector)) match {
+                case fnt_ @ Pi(_, _) => go(fnt_, as, Nil)
+                case _ =>
+                  throw new IllegalArgumentException(
+                    s"not a function type: $fnt")
+              }
+          }
+        go(infer(fn), as0, Nil)
+      case Lam(_, _) =>
+        def go(e: Expr, ctx: List[LocalConst]): Expr = e match {
+          case Lam(dom, body) =>
+            val dom_ = dom.copy(ty = dom.ty.instantiate(0, ctx.toVector))
+            if (shouldCheck) inferUniverseOfType(dom_.ty)
+            Pi(dom, withLC(dom_)(lc => go(body, lc :: ctx)))
+          case _ =>
+            val ctxVec = ctx.toVector
+            infer(e.instantiate(0, ctxVec)).abstr(0, ctxVec)
         }
-      go(infer(fn), as, Nil)
-    case Lam(_, _) =>
-      def go(e: Expr, ctx: List[LocalConst]): Expr = e match {
-        case Lam(dom, body) =>
-          val dom_ = dom.copy(ty = dom.ty.instantiate(0, ctx.toVector))
-          if (shouldCheck) inferUniverseOfType(dom_.ty)
-          Pi(dom, withLC(dom_)(lc => go(body, lc :: ctx)))
-        case _ =>
-          val ctxVec = ctx.toVector
-          infer(e.instantiate(0, ctxVec)).abstr(0, ctxVec)
-      }
-      go(e, Nil)
-    case Pi(_, _) =>
-      def go(e: Expr, ctx: List[LocalConst]): Level = e match {
-        case Pi(dom, body) =>
-          val dom_ = dom.copy(ty = dom.ty.instantiate(0, ctx.toVector))
-          val domUniv = inferUniverseOfType(dom_.ty)
-          Level.IMax(domUniv, withLC(dom_)(lc => go(body, lc :: ctx)))
-        case _ =>
-          val ctxVec = ctx.toVector
-          inferUniverseOfType(e.instantiate(0, ctxVec))
-      }
-      Sort(go(e, Nil).simplify)
-    case Let(domain, value, body) =>
-      if (shouldCheck) inferUniverseOfType(domain.ty)
-      if (shouldCheck) checkType(value, domain.ty)
-      infer(body.instantiate(value))
-    case NatLit(n) =>
-      Const(Name("Nat"), Vector(Level.One))
-  })
+        go(e, Nil)
+      case Pi(_, _) =>
+        def go(e: Expr, ctx: List[LocalConst]): Level = e match {
+          case Pi(dom, body) =>
+            val dom_ = dom.copy(ty = dom.ty.instantiate(0, ctx.toVector))
+            val domUniv = inferUniverseOfType(dom_.ty)
+            Level.IMax(domUniv, withLC(dom_)(lc => go(body, lc :: ctx)))
+          case _ =>
+            val ctxVec = ctx.toVector
+            inferUniverseOfType(e.instantiate(0, ctxVec))
+        }
+        Sort(go(e, Nil).simplify)
+      case Let(domain, value, body) =>
+        if (shouldCheck) inferUniverseOfType(domain.ty)
+        if (shouldCheck) checkType(value, domain.ty, "within let")
+        infer(body.instantiate(value))
+      case NatLit(n) =>
+        Const(Name("Nat"), Vector(Level.One))
+    })
 }
