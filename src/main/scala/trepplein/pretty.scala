@@ -11,8 +11,7 @@ case class PrettyOptions(
     hideProofs: Boolean = false,
     hideProofTerms: Boolean = false,
     showNotation: Boolean = true,
-    nestDepth: Int = 2
-)
+    nestDepth: Int = 2)
 
 sealed trait Notation {
   def fn: Name
@@ -26,8 +25,7 @@ case class Postfix(fn: Name, prio: Int, op: String) extends Notation
 class PrettyPrinter(
     typeChecker: Option[TypeChecker] = None,
     notations: Map[Name, Notation] = Map(),
-    options: PrettyOptions = PrettyOptions()
-) {
+    options: PrettyOptions = PrettyOptions()) {
   import options._
 
   val usedLCs: mutable.Set[Name] = mutable.Set[Name]()
@@ -55,8 +53,7 @@ class PrettyPrinter(
       case Param(param) => Parenable(MaxPrio, pp(param))
       case _ =>
         throw new IllegalArgumentException(
-          s"level $level was not resolved as an offset, max, imax, or param"
-        )
+          s"level $level was not resolved as an offset, max, imax, or param")
     }
 
   def mkFreshName(suggestion: Name): Name = {
@@ -66,9 +63,9 @@ class PrettyPrinter(
     val sanitizedSuggestion = suggestion.toString
       .filter(c => c.isLetterOrDigit || c == '_')
       .dropWhile(c => c.isDigit || c == '_') match {
-      case "" => "a"
-      case s  => s
-    }
+        case "" => "a"
+        case s => s
+      }
 
     def findUnused(base: String, idx: Int): Name = {
       val n = Name(base + '_' + idx)
@@ -112,8 +109,7 @@ class PrettyPrinter(
       isPi: Boolean,
       occursInBody: Boolean,
       isAnon: Boolean,
-      lc: LocalConst
-  ) {
+      lc: LocalConst) {
     def isImp: Boolean = isPi && info == Default && isAnon && !occursInBody
     def isForall: Boolean = isPi && !isImp
     def isLambda: Boolean = !isPi
@@ -130,35 +126,27 @@ class PrettyPrinter(
           val lc = LocalConst(
             dom.copy(
               prettyName = lcName,
-              ty = dom.ty.instantiate(0, ctx.view.map(_.lc).toVector)
-            )
-          )
+              ty = dom.ty.instantiate(0, ctx.view.map(_.lc).toVector)))
           decompose(
             body,
             ParsedBinder(
               isPi = true,
               isAnon = dom.prettyName.isAnon,
               occursInBody = body.hasVar(0),
-              lc = lc
-            ) :: ctx
-          )
+              lc = lc) :: ctx)
         case Lam(dom, body) =>
           val lcName = mkFreshName(dom.prettyName)
           val lc = LocalConst(
             dom.copy(
               prettyName = lcName,
-              ty = dom.ty.instantiate(0, ctx.view.map(_.lc).toVector)
-            )
-          )
+              ty = dom.ty.instantiate(0, ctx.view.map(_.lc).toVector)))
           decompose(
             body,
             ParsedBinder(
               isPi = false,
               isAnon = dom.prettyName.isAnon,
               occursInBody = body.hasVar(0),
-              lc = lc
-            ) :: ctx
-          )
+              lc = lc) :: ctx)
         case _ =>
           try f(ctx.reverse, e.instantiate(0, ctx.view.map(_.lc).toVector))
           finally usedLCs --= ctx.view.map(_.lc.of.prettyName)
@@ -167,8 +155,7 @@ class PrettyPrinter(
   }
 
   private def splitListWhile[T](
-      xs: List[T]
-  )(pred: T => Boolean): (List[T], List[T]) =
+    xs: List[T])(pred: T => Boolean): (List[T], List[T]) =
     xs match {
       case x :: rest if pred(x) =>
         val (part1, part2) = splitListWhile(rest)(pred)
@@ -186,16 +173,14 @@ class PrettyPrinter(
           else splitListWhile(binders)(b => b.info == b0.info && b.ty == b0.ty)
         val bare = wordwrap(
           group.map(b =>
-            if (b.isAnon && !b.occursInBody) text("_") else pp(b.name)
-          )
-        ) <+>
+            if (b.isAnon && !b.occursInBody) text("_") else pp(b.name))) <+>
           ":" </> pp(b0.ty).parens(1).group
         nest(b0.info match {
           //          case Default if group.size == 1 => bare
-          case Default        => "(" <> bare <> ")"
-          case Implicit       => "{" <> bare <> "}"
+          case Default => "(" <> bare <> ")"
+          case Implicit => "{" <> bare <> "}"
           case StrictImplicit => "{{" <> bare <> "}}"
-          case InstImplicit   => "[" <> bare <> "]"
+          case InstImplicit => "[" <> bare <> "]"
         }) :: telescope(rest)
     }
 
@@ -206,22 +191,19 @@ class PrettyPrinter(
         Parenable(
           24,
           (nest(pp(b.ty).parens(25)) <+> "→" <> line).group <> pp(rest, inner)
-            .parens(24)
-        )
+            .parens(24))
       case b :: _ if b.isForall =>
         val (group, rest) = splitListWhile(binders)(_.isForall)
         Parenable(
           0,
           nest("∀" <+> wordwrap(telescope(group)) <> ",") </> pp(rest, inner)
-            .parens(0)
-        )
+            .parens(0))
       case b :: _ if b.isLambda =>
         val (group, rest) = splitListWhile(binders)(_.isLambda)
         Parenable(
           0,
           nest("λ" <+> wordwrap(telescope(group)) <> ",") </> pp(rest, inner)
-            .parens(0)
-        )
+            .parens(0))
     }
 
   private def constName(n: Name): Parenable =
@@ -253,10 +235,8 @@ class PrettyPrinter(
             (nest(
               "let" <+> ppBareBinder(lc.of).group <+> ":=" </> pp(value)
                 .parens(0)
-                .group <+> "in"
-            ) </>
-              pp(body.instantiate(lc)).parens(0)).group
-          )
+                .group <+> "in") </>
+              pp(body.instantiate(lc)).parens(0)).group)
         }
       case Proj(typeName, idx, struct) =>
         val Parenable(prio, doc) = pp(struct)
@@ -267,7 +247,7 @@ class PrettyPrinter(
           e match {
             case App(hd, _) if !showImplicits && isImplicit(hd) => go(hd, as)
             case App(hd, a) => go(hd, a :: as)
-            case hd         => (hd, as)
+            case hd => (hd, as)
           }
         def printDefault(fn: Expr, as: List[Expr]) =
           Parenable(
@@ -275,11 +255,7 @@ class PrettyPrinter(
             nest(
               wordwrap(
                 pp(fn).parens(MaxPrio - 1).group :: as.map(
-                  pp(_).parens(MaxPrio).group
-                )
-              )
-            )
-          )
+                  pp(_).parens(MaxPrio).group))))
         go(e, Nil) match {
           case (fn, Nil) => pp(fn)
           case (fn @ Const(n, _), as) if showNotation =>
@@ -287,39 +263,33 @@ class PrettyPrinter(
               case Some(Prefix(_, prio, op)) if as.size == 1 =>
                 Parenable(
                   prio - 1,
-                  (op <> zeroWidthLine).group <> pp(as(0)).parens(prio)
-                )
+                  (op <> zeroWidthLine).group <> pp(as(0)).parens(prio))
               case Some(Postfix(_, prio, op)) if as.size == 1 =>
                 Parenable(
                   prio - 1,
-                  (pp(as(0)).parens(prio) <> zeroWidthLine <> op).group
-                )
+                  (pp(as(0)).parens(prio) <> zeroWidthLine <> op).group)
               case Some(Infix(_, prio, op)) if as.size == 2 =>
                 Parenable(
                   prio - 1,
                   nest(
                     pp(as(0)).parens(prio) <> op <> zeroWidthLine <> pp(as(1))
-                      .parens(prio)
-                  )
-                )
+                      .parens(prio)))
               case _ =>
                 printDefault(fn, as)
             }
           case (fn, as) => printDefault(fn, as)
         }
-      case NatLit(n)    => Parenable(MaxPrio, s"n")
+      case NatLit(n) => Parenable(MaxPrio, s"n")
       case StringLit(s) => Parenable(MaxPrio, s""""$s"""")
     }
 
   def parseParams[T](ty: Expr, value: Expr)(
-      f: (List[ParsedBinder], List[ParsedBinder], Expr, Expr) => T
-  ): T =
+    f: (List[ParsedBinder], List[ParsedBinder], Expr, Expr) => T): T =
     parseBinders(ty) { (binders, ty) =>
       def go(
-          binders: List[ParsedBinder],
-          value: Expr,
-          reverseParams: List[ParsedBinder]
-      ): T =
+        binders: List[ParsedBinder],
+        value: Expr,
+        reverseParams: List[ParsedBinder]): T =
         (binders, value) match {
           case (b :: bs, Lam(_, value_)) if b.isForall =>
             go(bs, value_, b :: reverseParams)
@@ -328,8 +298,7 @@ class PrettyPrinter(
               reverseParams.reverse,
               binders,
               ty,
-              value.instantiate(0, reverseParams.view.map(_.lc).toVector)
-            )
+              value.instantiate(0, reverseParams.view.map(_.lc).toVector))
         }
       go(binders, value, Nil)
     }
@@ -346,8 +315,7 @@ class PrettyPrinter(
             if (isProp && hideProofs) "_" else pp(value).parens(0).group
           cmd <> ups <+> nest(
             nest(wordwrap(pp(name) :: telescope(params))) <+>
-              ":" </> pp(tyBinders, pp(ty)).parens(0).group <+> ":="
-          ) </> ppVal <> line
+              ":" </> pp(tyBinders, pp(ty)).parens(0).group <+> ":=") </> ppVal <> line
         }
       case None =>
         val ups: Doc = if (univParams.isEmpty) "" else " " <> pp(univParams)
@@ -355,8 +323,7 @@ class PrettyPrinter(
           val (params, rest) = splitListWhile(binders)(_.isForall)
           "axiom" <> ups <+> nest(
             nest(wordwrap(pp(name) :: telescope(params))) <+>
-              ":" </> pp(rest, pp(ty)).parens(0).group
-          ) <> line
+              ":" </> pp(rest, pp(ty)).parens(0).group) <> line
         }
         if (builtin) "/- builtin -/" <+> doc else doc
     }
