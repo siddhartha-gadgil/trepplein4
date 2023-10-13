@@ -62,7 +62,7 @@ final case class CompiledIndMod(indMod: IndMod, env: PreEnvironment)
           ),
         _
         ) =>
-        require(recArgs.size >= numParams)
+        require(recArgs.size >= numParams, "too few recursive arguments")
         tc.requireDefEq(
           Apps(recArgIndTy, recArgs.take(numParams)),
           indTyWParams)
@@ -109,6 +109,8 @@ final case class CompiledIndMod(indMod: IndMod, env: PreEnvironment)
             introTyIndices,
             Apps(Const(name, univParams), params ++ arguments))),
         BinderInfo.Default))
+
+    lazy val elems = Apps(Const(name, univParams), params ++ arguments)
 
     /**
      * Reduction rule for the introduction rule. The value of the function is
@@ -274,17 +276,30 @@ final case class CompiledIndMod(indMod: IndMod, env: PreEnvironment)
     for (i <- compiledIntros)
       yield Declaration(i.name, univParams, i.ty, builtin = true)
 
+  val structIntros: Map[Name, Declaration] =
+    if (isStructure) Map(name -> introDecls(0))
+    else Map()
+
+  // val structRules: Vector[ReductionRule] =
+  //   if (isStructure) {
+  //     val intro = compiledIntros(0)
+  //     val elem = Apps(Const(name, univParams), params ++ intro.arguments)
+  //     (0 until intro.arguments.size).map { i =>
+  //       ReductionRule(
+  //         (params ++ intro.arguments).toVector,
+  //         Proj(name, i, elem),
+  //         elem,
+  //         List())
+  //     }.toVector
+  //   } else Vector()
+
   val decls: Vector[Declaration] =
     Declaration(name, univParams, ty, builtin = true) +: introDecls :+ elimDecl
   val rules: Vector[ReductionRule] =
     if (kIntroRule.isDefined)
       kIntroRule.toVector
     else
-      compiledIntros.map(_.redRule)
-
-  val structIntros: Map[Name, Declaration] =
-    if (isStructure) Map(name -> introDecls(0))
-    else Map()
+      compiledIntros.map(_.redRule) // ++ structRules
 
   def check(): Unit = {
     val withType: PreEnvironment = env.addNow(decl)

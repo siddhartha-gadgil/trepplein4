@@ -43,10 +43,10 @@ final case class Declaration(
    * @param tc The type-checker
    */
   def check(env: PreEnvironment, tc: TypeChecker): Unit = {
-    require(!env.declarations.contains(name))
-    require(ty.univParams.subsetOf(univParams.toSet))
-    require(!ty.hasVars)
-    require(!ty.hasLocals)
+    require(!env.declarations.contains(name), "name already in environment")
+    require(ty.univParams.subsetOf(univParams.toSet), "universe parameters not in scope")
+    require(!ty.hasVars, "variables in type")
+    require(!ty.hasLocals, "locals in type")
     tc.inferUniverseOfType(ty)
   }
 }
@@ -167,8 +167,8 @@ final case class DefMod(
       def check(): Unit = {
         val tc = new TypeChecker(env)
         decl.check(env, tc)
-        require(!value.hasVars)
-        require(!value.hasLocals)
+        require(!value.hasVars, "variables in value")
+        require(!value.hasLocals, "locals in value")
         tc.checkType(value, ty)
       }
       def decls: Seq[Declaration] = Seq(decl)

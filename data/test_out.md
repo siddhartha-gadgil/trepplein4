@@ -113,7 +113,19 @@ stuck on:  (Nat.rec
             (PProd.fst x_InitPrelude_hyg3741) m) f) (Nat.succ n)
         (PProd.mk n_ih PUnit.unit)) (PProd.mk n_ih PUnit.unit))
     (OfNat.ofNat n)).0 (OfNat.ofNat n) Bool.true
-Nat.sub_self: java.lang.IllegalArgumentException: requirement failed
+Nat.sub_self: java.lang.IllegalArgumentException: wrong type:  fun (_ : Unit) (x_InitDataNatBasic_hyg2798 : Nat.below n) ↦ Eq.mpr
+  (id
+    (Eq.ndrec
+      (Eq.refl (Eq (HSub.hSub (OfNat.ofNat n) (OfNat.ofNat n)) (OfNat.ofNat n)))
+      (Nat.sub_zero (OfNat.ofNat n)))) (Eq.refl (OfNat.ofNat n))  :  Unit →
+(fun (x_InitDataNatBasic_hyg27242735 : Nat) ↦ ∀ (x_InitDataNatBasic_hyg2798 :
+      Nat.below x_InitDataNatBasic_hyg27242735) , Eq
+    (HSub.hSub x_InitDataNatBasic_hyg27242735 x_InitDataNatBasic_hyg27242735)
+    (OfNat.ofNat n)) n
+inferred type:  Unit → (∀ (x_InitDataNatBasic_hyg2798 : Nat.below n) , Eq
+  (HSub.hSub (OfNat.ofNat n) (OfNat.ofNat n)) (OfNat.ofNat n))
+n  !=def  (instOfNatNat n).0
+stuck on:  n (instOfNatNat n).0
 Nat.ne_of_beq_eq_false: java.lang.IllegalArgumentException: wrong type:  fun (h : Eq (Nat.beq Nat.zero Nat.zero) Bool.false)
   (x_InitPrelude_hyg3507 : Eq Nat.zero Nat.zero)
   (x_InitPrelude_hyg3601 : Nat.below Nat.zero) ↦ Bool.noConfusion h  :  ∀ (h :
@@ -259,8 +271,45 @@ inferred type:  ∀ (x : Nat)
   (n : Nat) , Nat
 (measure id).0 n y  !=def  (instLTNat).0 n y
 stuck on:  (measure id).0 n y (instLTNat).0 n y
-_private.Init.Data.Nat.Gcd.0.Nat.gcdF: java.lang.IllegalArgumentException: requirement failed
-Nat.mod_lt: java.lang.IllegalArgumentException: requirement failed
+_private.Init.Data.Nat.Gcd.0.Nat.gcdF: java.lang.IllegalArgumentException: wrong type:  fun (a : Unit)
+  (x_InitDataNatGcd_hyg31 :
+    (∀ (x : Nat) (a_InitDataNatGcd_hyg11 : LT.lt x (OfNat.ofNat n))
+      (n : Nat) , Nat)) (a_0 : Nat) ↦ a_0  :  Unit →
+(fun (x_InitDataNatGcd_hyg26 : Nat) ↦ ∀ (a_InitDataNatGcd_hyg5 :
+      (∀ (x : Nat) (a_InitDataNatGcd_hyg11 : LT.lt x x_InitDataNatGcd_hyg26)
+        (n_0 : Nat) , Nat)) (n : Nat) , Nat) n
+inferred type:  ∀ (a : Unit)
+  (x_InitDataNatGcd_hyg31 :
+    (∀ (x : Nat) (a_InitDataNatGcd_hyg11 : LT.lt x (OfNat.ofNat n))
+      (n : Nat) , Nat)) (a_0 : Nat) , Nat
+n  !=def  (instOfNatNat n).0
+stuck on:  n (instOfNatNat n).0
+Nat.mod_lt: java.lang.IllegalArgumentException: wrong type:  fun (x y : Nat) (h : And (LT.lt (OfNat.ofNat n) y) (LE.le y x))
+  (h_0 :
+    (∀ (a_InitDataNatDiv_hyg1418 : GT.gt y (OfNat.ofNat n)) , LT.lt
+      (HMod.hMod (HSub.hSub x y) y) y))
+  (h_1 : GT.gt y (OfNat.ofNat n)) ↦ Nat.div_rec_lemma.match_1
+  (fun (h_InitDataNatDiv_hyg1617 :
+      And (LT.lt (OfNat.ofNat n) y) (LE.le y x)) ↦ LT.lt (HMod.hMod x y) y) h
+  (fun (left_InitDataNatDiv_hyg1626 : LT.lt (OfNat.ofNat n) y)
+    (h_2 : LE.le y x) ↦ Eq.mpr
+    (id (Eq.ndrec (Eq.refl (LT.lt (HMod.hMod x y) y)) (Nat.mod_eq_sub_mod h_2)))
+    (h_0 h_1))  :  ∀ (x y : Nat)
+  (a_InitDataNatDiv_hyg233 : And (LT.lt (OfNat.ofNat n) y) (LE.le y x))
+  (a_InitDataNatDiv_hyg247 :
+    (fun (x_0 : Nat) {y_0 : Nat} ↦ ∀ (a_InitDataNatDiv_hyg1418 :
+          GT.gt y_0 (OfNat.ofNat n)) , LT.lt (HMod.hMod x_0 y_0) y_0)
+      (HSub.hSub x y)) , (fun (x_0 : Nat)
+    {y_0 : Nat} ↦ ∀ (a_InitDataNatDiv_hyg1418 :
+      GT.gt y_0 (OfNat.ofNat n)) , LT.lt (HMod.hMod x_0 y_0) y_0) x
+inferred type:  ∀ (x y : Nat) (h : And (LT.lt (OfNat.ofNat n) y) (LE.le y x))
+  (h_0 :
+    (∀ (a_InitDataNatDiv_hyg1418 : GT.gt y (OfNat.ofNat n)) , LT.lt
+      (HMod.hMod (HSub.hSub x y) y) y))
+  (h_1 : GT.gt y (OfNat.ofNat n)) , (fun (h_InitDataNatDiv_hyg1617 :
+      And (LT.lt (OfNat.ofNat n) y) (LE.le y x)) ↦ LT.lt (HMod.hMod x y) y) h
+n  !=def  n
+stuck on:  n n
 Nat.le_antisymm: java.lang.IllegalArgumentException: wrong type:  Nat.le.refl  :  LE.le n n
 inferred type:  Nat.le n n
 (instLENat).0 n n  !=def  Nat.le n n
@@ -281,8 +330,14 @@ Nat.le_step: java.lang.IllegalArgumentException: wrong type:  h  :  Nat.le n m
 inferred type:  LE.le n m
 Nat.le n m  !=def  (instLENat).0 n m
 stuck on:  Nat.le n m (instLENat).0 n m
-Nat.lt_or_ge: java.lang.IllegalArgumentException: requirement failed
-Nat.modCore_eq_mod: java.lang.IllegalArgumentException: requirement failed
+Nat.lt_or_ge: java.lang.IllegalArgumentException: wrong type:  Nat.zero_le n  :  GE.ge n Nat.zero
+inferred type:  LE.le (OfNat.ofNat n) n
+Nat.zero  !=def  (instOfNatNat n).0
+stuck on:  Nat.zero (instOfNatNat n).0
+Nat.modCore_eq_mod: java.lang.IllegalArgumentException: wrong type:  hle  :  LE.le y (OfNat.ofNat n)
+inferred type:  LE.le y Nat.zero
+(instOfNatNat n).0  !=def  Nat.zero
+stuck on:  (instOfNatNat n).0 Nat.zero
 _private.Init.Data.Nat.Div.0.Nat.modCore._eq_1: java.lang.IllegalArgumentException: wrong type:  Nat.div_rec_lemma h._@.Init.Data.Nat.Div._hyg.814  :  (invImage
     (fun (a_InitWF860InitDataNatDiv_hyg816 :
         PSigma (fun (x : Nat) ↦ Nat)) ↦ PSigma.casesOn
@@ -617,9 +672,22 @@ inferred type:  ∀ {n m k : Nat} (a_InitPrelude_hyg4065 : LE.le (Nat.succ n) m)
   (a_InitPrelude_hyg4069 : LE.le m k) , LE.le (Nat.succ n) k
 (instLTNat).0 n m  !=def  (instLENat).0 (Nat.succ n) m
 stuck on:  (instLTNat).0 n m (instLENat).0 (Nat.succ n) m
-Nat.sub_lt: java.lang.IllegalArgumentException: requirement failed
-Nat.succ_sub_succ_eq_sub: java.lang.IllegalArgumentException: requirement failed
-Nat.sub_le: java.lang.IllegalArgumentException: requirement failed
+Nat.sub_lt: java.lang.IllegalArgumentException: wrong type:  h1  :  LT.lt (OfNat.ofNat n) n
+inferred type:  LT.lt (OfNat.ofNat n) (OfNat.ofNat n)
+n  !=def  (instOfNatNat n).0
+stuck on:  n (instOfNatNat n).0
+Nat.succ_sub_succ_eq_sub: java.lang.IllegalArgumentException: wrong type:  rfl  :  (fun (m : Nat) ↦ Eq (HSub.hSub (Nat.succ n) (Nat.succ m))
+    (HSub.hSub n m)) Nat.zero
+inferred type:  Eq (HSub.hSub (Nat.succ n) (Nat.succ Nat.zero))
+  (HSub.hSub (Nat.succ n) (Nat.succ Nat.zero))
+n  !=def  Nat.succ n
+stuck on:  n Nat.succ n
+Nat.sub_le: java.lang.IllegalArgumentException: wrong type:  Nat.le_refl (HSub.hSub n (OfNat.ofNat n))  :  (fun (m :
+      Nat) ↦ LE.le (HSub.hSub n m) n) Nat.zero
+inferred type:  LE.le (HSub.hSub n (OfNat.ofNat n))
+  (HSub.hSub n (OfNat.ofNat n))
+Nat.zero  !=def  (instOfNatNat n).0
+stuck on:  Nat.zero (instOfNatNat n).0
 Nat.pred_le: java.lang.IllegalArgumentException: wrong type:  fun (a : Unit) ↦ Nat.le.refl  :  Unit →
 (fun (x_InitDataNatBasic_hyg23662377 : Nat) ↦ LE.le
     (Nat.pred x_InitDataNatBasic_hyg23662377) x_InitDataNatBasic_hyg23662377)
@@ -644,8 +712,21 @@ Nat.lt_irrefl: java.lang.IllegalArgumentException: wrong type:  fun (n : Nat) �
 inferred type:  ∀ (n : Nat) , Not (LE.le (Nat.succ n) n)
 (instLTNat).0 n n  !=def  (instLENat).0 (Nat.succ n) n
 stuck on:  (instLTNat).0 n n (instLENat).0 (Nat.succ n) n
-Nat.not_succ_le_self: java.lang.IllegalArgumentException: requirement failed
-Nat.sub_lt.match_1: java.lang.IllegalArgumentException: requirement failed
+Nat.not_succ_le_self: java.lang.IllegalArgumentException: wrong type:  fun (_ : Unit)
+  (x_InitPrelude_hyg4791 : Nat.below n) ↦ Nat.not_succ_le_zero
+  (OfNat.ofNat n)  :  Unit → (fun (x_InitPrelude_hyg47564767 :
+      Nat) ↦ ∀ (x_InitPrelude_hyg4791 :
+      Nat.below x_InitPrelude_hyg47564767) , Not
+    (LE.le (Nat.succ x_InitPrelude_hyg47564767) x_InitPrelude_hyg47564767)) n
+inferred type:  Unit → (∀ (x_InitPrelude_hyg4791 : Nat.below n)
+  (a_InitPrelude_hyg3820 :
+    LE.le (Nat.succ (OfNat.ofNat n)) (OfNat.ofNat n)) , False)
+n  !=def  (instOfNatNat n).0
+stuck on:  n (instOfNatNat n).0
+Nat.sub_lt.match_1: java.lang.IllegalArgumentException: wrong type:  h1  :  LT.lt (OfNat.ofNat n) n
+inferred type:  LT.lt (OfNat.ofNat n) (OfNat.ofNat n)
+n  !=def  (instOfNatNat n).0
+stuck on:  n (instOfNatNat n).0
 Nat.sub: java.lang.IllegalArgumentException: wrong type:  fun (x_InitPrelude_hyg3059 : Nat)
   (x_InitPrelude_hyg5431 :
     Nat.below n) ↦ x_InitPrelude_hyg3059  :  ∀ (x_InitPrelude_hyg3059 :
@@ -670,9 +751,28 @@ Nat.ble_eq_true_of_le: java.lang.IllegalArgumentException: wrong type:  Nat.le.r
 inferred type:  Nat.le n n
 (instLENat).0 n n  !=def  Nat.le n n
 stuck on:  (instLENat).0 n n Nat.le n n
-Nat.ble_succ_eq_true: java.lang.IllegalArgumentException: requirement failed
-Nat.ble_succ_eq_true.match_1: java.lang.IllegalArgumentException: requirement failed
-Nat.ble_self_eq_true: java.lang.IllegalArgumentException: requirement failed
+Nat.ble_succ_eq_true: java.lang.IllegalArgumentException: wrong type:  x._@.Init.Prelude._hyg.5136  :  Eq
+  (Nat.ble n x._@.Init.Prelude._hyg.5094.5121) Bool.true
+inferred type:  Eq (Nat.ble (OfNat.ofNat n) x._@.Init.Prelude._hyg.5094.5121)
+  Bool.true
+n  !=def  (instOfNatNat n).0
+stuck on:  n (instOfNatNat n).0
+Nat.ble_succ_eq_true.match_1: java.lang.IllegalArgumentException: wrong type:  x._@.Init.Prelude._hyg.5136  :  Eq
+  (Nat.ble n x._@.Init.Prelude._hyg.5137) Bool.true
+inferred type:  Eq (Nat.ble (OfNat.ofNat n) x._@.Init.Prelude._hyg.5137)
+  Bool.true
+n  !=def  (instOfNatNat n).0
+stuck on:  n (instOfNatNat n).0
+Nat.ble_self_eq_true: java.lang.IllegalArgumentException: wrong type:  fun (_ : Unit)
+  (x_InitPrelude_hyg5066 : Nat.below n) ↦ rfl  :  Unit →
+(fun (x_InitPrelude_hyg50425053 : Nat) ↦ ∀ (x_InitPrelude_hyg5066 :
+      Nat.below x_InitPrelude_hyg50425053) , Eq
+    (Nat.ble x_InitPrelude_hyg50425053 x_InitPrelude_hyg50425053) Bool.true) n
+inferred type:  Unit → (∀ (x_InitPrelude_hyg5066 : Nat.below n) , Eq
+  (Nat.ble (OfNat.ofNat n) (OfNat.ofNat n))
+  (Nat.ble (OfNat.ofNat n) (OfNat.ofNat n)))
+n  !=def  (instOfNatNat n).0
+stuck on:  n (instOfNatNat n).0
 Nat.not_succ_le_self.match_1: java.lang.IllegalArgumentException: wrong type:  h_1 Unit.unit  :  (fun (x : Nat) ↦ motive x) Nat.zero
 inferred type:  motive n
 Nat.zero  !=def  n
@@ -681,8 +781,16 @@ Nat.ble_eq_true_of_le.match_1: java.lang.IllegalArgumentException: wrong type:  
 inferred type:  Nat.le n n
 (instLENat).0 n n  !=def  Nat.le n n
 stuck on:  (instLENat).0 n n Nat.le n n
-Nat.le_of_ble_eq_true: java.lang.IllegalArgumentException: requirement failed
-Nat.le_of_ble_eq_true.match_1: java.lang.IllegalArgumentException: requirement failed
+Nat.le_of_ble_eq_true: java.lang.IllegalArgumentException: wrong type:  h  :  Eq (Nat.ble n n._@.Init.Prelude._hyg.4984) Bool.true
+inferred type:  Eq (Nat.ble (OfNat.ofNat n) n._@.Init.Prelude._hyg.4984)
+  Bool.true
+n  !=def  (instOfNatNat n).0
+stuck on:  n (instOfNatNat n).0
+Nat.le_of_ble_eq_true.match_1: java.lang.IllegalArgumentException: wrong type:  h  :  Eq (Nat.ble n x._@.Init.Prelude._hyg.5000) Bool.true
+inferred type:  Eq (Nat.ble (OfNat.ofNat n) x._@.Init.Prelude._hyg.5000)
+  Bool.true
+n  !=def  (instOfNatNat n).0
+stuck on:  n (instOfNatNat n).0
 Nat.mod.match_1: java.lang.IllegalArgumentException: wrong type:  h._@.Init.Data.Nat.Div._hyg.873  :  Eq
   x._@.Init.Data.Nat.Div._hyg.869 (Nat.succ n._@.Init.Data.Nat.Div._hyg.886)
 inferred type:  Eq x._@.Init.Data.Nat.Div._hyg.869
@@ -703,7 +811,11 @@ Nat.le (Nat.succ a._@.Init.Prelude._hyg.170)
   (OfNat.ofNat n)
 stuck on:  Nat.le (Nat.succ a._@.Init.Prelude._hyg.170)
   (OfNat.ofNat n) (instLTNat).0 a._@.Init.Prelude._hyg.170 (OfNat.ofNat n)
-Nat.eq_or_lt_of_le: java.lang.IllegalArgumentException: requirement failed
+Nat.eq_or_lt_of_le: java.lang.IllegalArgumentException: wrong type:  Nat.zero_le x._@.Init.Prelude._hyg.4483.4510  :  LE.le Nat.zero
+  x._@.Init.Prelude._hyg.4483.4510
+inferred type:  LE.le (OfNat.ofNat n) x._@.Init.Prelude._hyg.4483.4510
+Nat.zero  !=def  (instOfNatNat n).0
+stuck on:  Nat.zero (instOfNatNat n).0
 Nat.pred_le_pred: java.lang.IllegalArgumentException: wrong type:  Nat.le.refl  :  LE.le x._@.Init.Prelude._hyg.4294.4321
   x._@.Init.Prelude._hyg.4294.4321
 inferred type:  Nat.le x._@.Init.Prelude._hyg.4294.4321
@@ -767,7 +879,10 @@ inferred type:  ∀ (n : Nat)
   (OfNat.ofNat n)
 stuck on:  (instLTNat).0 n (OfNat.ofNat n) (instLENat).0 (Nat.succ n)
   (OfNat.ofNat n)
-Nat.not_succ_le_zero: java.lang.IllegalArgumentException: requirement failed
+Nat.not_succ_le_zero: java.lang.IllegalArgumentException: wrong type:  h  :  LE.le (Nat.succ n) (OfNat.ofNat n)
+inferred type:  LE.le (Nat.succ (OfNat.ofNat n)) (OfNat.ofNat n)
+n  !=def  (instOfNatNat n).0
+stuck on:  n (instOfNatNat n).0
 Nat.not_succ_le_zero.match_2: java.lang.IllegalArgumentException: wrong type:  h._@.Init.Prelude._hyg.3881  :  Eq n
   (Nat.succ (Nat.succ n._@.Init.Prelude._hyg.3873))
 inferred type:  Eq (OfNat.ofNat n)
@@ -778,4 +893,7 @@ Nat.not_succ_le_zero.match_1: java.lang.IllegalArgumentException: wrong type:  h
 inferred type:  Eq (OfNat.ofNat n) (Nat.succ (OfNat.ofNat n))
 n  !=def  (instOfNatNat n).0
 stuck on:  n (instOfNatNat n).0
-Nat.not_succ_le_zero.match_3: java.lang.IllegalArgumentException: requirement failed
+Nat.not_succ_le_zero.match_3: java.lang.IllegalArgumentException: wrong type:  h  :  LE.le (Nat.succ n) (OfNat.ofNat n)
+inferred type:  LE.le (Nat.succ (OfNat.ofNat n)) (OfNat.ofNat n)
+n  !=def  (instOfNatNat n).0
+stuck on:  n (instOfNatNat n).0

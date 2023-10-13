@@ -23,11 +23,11 @@ private object NoReductionRuleCache extends ReductionRuleCache {
  * @param defEqConstraints The general definitional equalities that need to be checked for the reduction to be valid.
  */
 final case class ReductionRule(ctx: Vector[Binding], lhs: Expr, rhs: Expr, defEqConstraints: List[(Expr, Expr)]) {
-  require(!lhs.hasLocals)
-  require(!rhs.hasLocals)
+  require(!lhs.hasLocals, "reduction rule left-hand side must not have locals")
+  require(!rhs.hasLocals, "reduction rule right-hand side must not have locals")
 
   val varBound: Int = lhs.varBound
-  require(rhs.varBound <= varBound)
+  require(rhs.varBound <= varBound, "reduction rule right-hand side must not have more variables than the left-hand side")
 
   val Apps(Const(lhsConst, _), lhsArgs) = lhs
   val lhsArgsSize: Int = lhsArgs.size

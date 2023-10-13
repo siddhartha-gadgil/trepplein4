@@ -135,22 +135,22 @@ class TypeChecker(
       case (LocalConst(_, i1), LocalConst(_, i2)) if i1 == i2 =>
         checkArgs
       case (Lam(dom, b1), Lam(_, b2)) =>
-        require(as1.isEmpty && as2.isEmpty)
+        require(as1.isEmpty && as2.isEmpty, "unexpected arguments to lambda")
         return withLC(dom)(lc =>
           checkDefEqCore(b1.instantiate(lc), b2.instantiate(lc)))
       case (Lam(dom1, _), _) =>
-        require(as1.isEmpty)
+        require(as1.isEmpty, "unexpected arguments to lambda")
         return checkDefEqCore(e1, Lam(dom1, App(e2, Var(0))))
       case (_, Lam(dom2, _)) =>
-        require(as2.isEmpty)
+        require(as2.isEmpty, "unexpected arguments to lambda")
         return checkDefEqCore(Lam(dom2, App(e1, Var(0))), e2)
       case (Pi(dom1, b1), Pi(dom2, b2)) =>
-        require(as1.isEmpty && as2.isEmpty)
+        require(as1.isEmpty && as2.isEmpty, "unexpected arguments to pi-type")
         return checkDefEq(dom1.ty, dom2.ty) & withLC(dom1)(lc =>
           checkDefEqCore(b1.instantiate(lc), b2.instantiate(lc)))
       case (Proj(typeName1, idx1, struct1), Proj(typeName2, idx2, struct2)) if idx1 == idx2 && typeName1 == typeName2 =>
-        require(as1.isEmpty && as2.isEmpty)
-        return checkDefEq(struct1, struct2)
+        // require(as1.isEmpty && as2.isEmpty, "unexpected arguments to projection")
+        return checkArgs & checkDefEq(struct1, struct2)
       case (_, _) =>
         NotDefEq(e1, e2)
     }) match {
