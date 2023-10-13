@@ -346,6 +346,6 @@ class TypeChecker(
         if (shouldCheck) checkType(value, domain.ty, "within let")
         infer(body.instantiate(value))
       case NatLit(n) =>
-        Const(Name("Nat"), Vector(Level.One))
+        Const(Name("Nat"), Vector())
     })
 }
