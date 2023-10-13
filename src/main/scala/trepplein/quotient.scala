@@ -48,6 +48,8 @@ case object QuotMod extends Modification {
   def compile(env: PreEnvironment) = new CompiledModification {
     val decls = Seq(quot, quotMk, quotInd, quotLift)
     val rules = Seq(quotRed)
+
+    val structIntros = Map()
     override def check(): Unit =
       decls.foldLeft(env)((env, decl) => env.addNow(decl))
   }
