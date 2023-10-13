@@ -81,7 +81,7 @@ trait CompiledModification {
    */
   def rules: Seq[ReductionRule]
 
-  def structIntros: Map[Name, Declaration] 
+  def structIntros: Map[Name, Declaration]
 }
 
 /**
@@ -140,7 +140,7 @@ final case class AxiomMod(name: Name, univParams: Vector[Level.Param], ty: Expr)
       def check(): Unit = decl.check(env)
       def decls: Seq[Declaration] = Seq(decl)
       def rules: Seq[ReductionRule] = Seq()
-      def structIntros: Map[Name,Declaration] = Map()
+      def structIntros: Map[Name, Declaration] = Map()
     }
 }
 final case class DefMod(
@@ -173,7 +173,7 @@ final case class DefMod(
       }
       def decls: Seq[Declaration] = Seq(decl)
       def rules: Seq[ReductionRule] = Seq(rule)
-      def structIntros: Map[Name,Declaration] = Map()
+      def structIntros: Map[Name, Declaration] = Map()
     }
 }
 
@@ -184,7 +184,7 @@ final case class StructMod(name: Name, decl: Declaration)
       def check(): Unit = require(env.declarations.values.toSet.contains(decl))
       def decls: Seq[Declaration] = Seq(decl)
       def rules: Seq[ReductionRule] = Seq()
-      def structIntros: Map[Name,Declaration] = Map(name -> decl)
+      def structIntros: Map[Name, Declaration] = Map(name -> decl)
     }
 }
 
@@ -205,7 +205,7 @@ case class EnvironmentUpdateError(mod: Modification, msg: String) {
 sealed class PreEnvironment protected (
     val declarations: Map[Name, Declaration],
     val reductions: ReductionMap,
-    val structIntros : Map[Name, Declaration],
+    val structIntros: Map[Name, Declaration],
     val proofObligations: List[Future[Option[EnvironmentUpdateError]]]) {
 
   /**
@@ -323,7 +323,7 @@ sealed class PreEnvironment protected (
 final class Environment private (
     declarations: Map[Name, Declaration],
     reductionMap: ReductionMap,
-    structIntros : Map[Name, Declaration]) extends PreEnvironment(declarations, reductionMap, structIntros, Nil)
+    structIntros: Map[Name, Declaration]) extends PreEnvironment(declarations, reductionMap, structIntros, Nil)
 object Environment {
   /**
    * From a pre-environment, obtain an environment or an error in the future, depending on whether all the
