@@ -131,6 +131,7 @@ sealed abstract class Expr(
       case Pi(dom, body) => dom.ty.hasVar(i) || body.hasVar(i + 1)
       case Let(dom, value, body) =>
         dom.ty.hasVar(i) || value.hasVar(i) || body.hasVar(i + 1)
+      case Proj(typeName, idx, struct) => struct.hasVar(i)
       // case expr =>
       //   throw new IllegalArgumentException(
       //     s"hasVar($i) called on $expr which has varBound $varBound greater than $i")
@@ -210,6 +211,8 @@ sealed abstract class Expr(
           domain.copy(ty = domain.ty.abstrCore(off, lcs)),
           value.abstrCore(off, lcs),
           body.abstrCore(off + 1, lcs))
+      case Proj(typeName, idx, struct) =>
+        Proj(typeName, idx, struct.abstrCore(off, lcs))
       case _ =>
         throw new IllegalArgumentException(
           s"abstrCore($off, $lcs) called on $this which should have no locals but hasLocals = $hasLocals")
@@ -258,6 +261,8 @@ sealed abstract class Expr(
           domain.copy(ty = domain.ty.instantiateCore(off, es)),
           value.instantiateCore(off, es),
           body.instantiateCore(off + 1, es))
+      case Proj(typeName, idx, struct) =>
+        Proj(typeName, idx, struct.instantiateCore(off, es))
       // case _ =>
       //   throw new IllegalArgumentException(
       //     s"instantiateCore($off, $es) called on $this which has varBound $varBound which is greater than offset $off")
