@@ -169,7 +169,7 @@ final case class DefMod(
         decl.check(env, tc)
         require(!value.hasVars)
         require(!value.hasLocals)
-        tc.checkType(value, ty, s"definition $name")
+        tc.checkType(value, ty)
       }
       def decls: Seq[Declaration] = Seq(decl)
       def rules: Seq[ReductionRule] = Seq(rule)

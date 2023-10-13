@@ -80,15 +80,7 @@ Nat.lt_trans: (#0).0 (of class trepplein.Proj)
 Nat.le_step: (#0).0 (of class trepplein.Proj)
 Nat.lt_or_ge: (#0).0 (of class trepplein.Proj)
 Nat.modCore_eq_mod: (#0).0 (of class trepplein.Proj)
-_private.Init.Data.Nat.Div.0.Nat.modCore._eq_1: (@invImage.{1 1} (@PSigma.{1 1} @Nat (fun (x : @Nat) ↦ @Nat)) @Nat
-  (fun (a_InitWF860InitDataNatDiv_hyg816 :
-      @PSigma.{1 1} @Nat (fun (x : @Nat) ↦ @Nat)) ↦ @PSigma.casesOn.{1 1 1} @Nat
-    (fun (x : @Nat) ↦ @Nat)
-    (fun (x : @PSigma.{1 1} @Nat (fun (x_0 : @Nat) ↦ @Nat)) ↦ @Nat)
-    a_InitWF860InitDataNatDiv_hyg816
-    (fun (x_InitDataNatDiv_hyg779 snd_InitDataNatDiv_hyg817 :
-        @Nat) ↦ @SizeOf.sizeOf.{1} @Nat @instSizeOfNat x_InitDataNatDiv_hyg779))
-  (@instWellFoundedRelation.{1} @Nat @instSizeOfNat)).0 (of class trepplein.Proj)
+_private.Init.Data.Nat.Div.0.Nat.modCore._eq_1: (#0).0 (of class trepplein.Proj)
 Nat.sub_zero: (#0).0 (of class trepplein.Proj)
 Nat.eq_zero_or_pos: (#0).0 (of class trepplein.Proj)
 Nat.zero_lt_succ: (#0).0 (of class trepplein.Proj)
@@ -102,15 +94,7 @@ stuck on:  Nat.zero n
 Nat.div.inductionOn: (#0).0 (of class trepplein.Proj)
 Nat.div.inductionOn._unary: (#0).0 (of class trepplein.Proj)
 Nat.mod: (#0).0 (of class trepplein.Proj)
-Nat.modCore._unary: (@invImage.{1 1} (@PSigma.{1 1} @Nat (fun (x : @Nat) ↦ @Nat)) @Nat
-  (fun (a_InitWF860InitDataNatDiv_hyg816 :
-      @PSigma.{1 1} @Nat (fun (x : @Nat) ↦ @Nat)) ↦ @PSigma.casesOn.{1 1 1} @Nat
-    (fun (x : @Nat) ↦ @Nat)
-    (fun (x : @PSigma.{1 1} @Nat (fun (x_0 : @Nat) ↦ @Nat)) ↦ @Nat)
-    a_InitWF860InitDataNatDiv_hyg816
-    (fun (x_InitDataNatDiv_hyg779 snd_InitDataNatDiv_hyg817 :
-        @Nat) ↦ @SizeOf.sizeOf.{1} @Nat @instSizeOfNat x_InitDataNatDiv_hyg779))
-  (@instWellFoundedRelation.{1} @Nat @instSizeOfNat)).0 (of class trepplein.Proj)
+Nat.modCore._unary: (#0).0 (of class trepplein.Proj)
 Nat.lt_of_lt_of_le: (#0).0 (of class trepplein.Proj)
 Nat.sub_lt: (#0).0 (of class trepplein.Proj)
 Nat.succ_sub_succ_eq_sub: (#0).0 (of class trepplein.Proj)
@@ -256,15 +240,55 @@ Nat.le_of_ble_eq_true: (#0).0 (of class trepplein.Proj)
 Nat.le_of_ble_eq_true.match_1: (#0).0 (of class trepplein.Proj)
 And.left: (#0).0 (of class trepplein.Proj)
 And.right: (#0).1 (of class trepplein.Proj)
-Nat.modCore._unary.proof_1: (@invImage.{1 1} (@PSigma.{1 1} @Nat (fun (x : @Nat) ↦ @Nat)) @Nat
+Nat.modCore._unary.proof_1: type error: definition Nat.modCore._unary.proof_1
+wrong type:  (invImage
   (fun (a_InitWF860InitDataNatDiv_hyg816 :
-      @PSigma.{1 1} @Nat (fun (x : @Nat) ↦ @Nat)) ↦ @PSigma.casesOn.{1 1 1} @Nat
-    (fun (x : @Nat) ↦ @Nat)
-    (fun (x : @PSigma.{1 1} @Nat (fun (x_0 : @Nat) ↦ @Nat)) ↦ @Nat)
+      PSigma (fun (x : Nat) ↦ Nat)) ↦ PSigma.casesOn
     a_InitWF860InitDataNatDiv_hyg816
     (fun (x_InitDataNatDiv_hyg779 snd_InitDataNatDiv_hyg817 :
-        @Nat) ↦ @SizeOf.sizeOf.{1} @Nat @instSizeOfNat x_InitDataNatDiv_hyg779))
-  (@instWellFoundedRelation.{1} @Nat @instSizeOfNat)).0 (of class trepplein.Proj)
+        Nat) ↦ SizeOf.sizeOf x_InitDataNatDiv_hyg779))
+  instWellFoundedRelation).1  :  WellFounded
+  ((invImage
+    (fun (a_InitWF860InitDataNatDiv_hyg816 :
+        PSigma (fun (x : Nat) ↦ Nat)) ↦ PSigma.casesOn
+      a_InitWF860InitDataNatDiv_hyg816
+      (fun (x_InitDataNatDiv_hyg779 snd_InitDataNatDiv_hyg817 :
+          Nat) ↦ SizeOf.sizeOf x_InitDataNatDiv_hyg779))
+    instWellFoundedRelation).0)
+inferred type:  WellFounded
+  ((invImage
+    (fun (a_InitWF860InitDataNatDiv_hyg816 :
+        PSigma (fun (x : Nat) ↦ Nat)) ↦ PSigma.casesOn
+      a_InitWF860InitDataNatDiv_hyg816
+      (fun (x_InitDataNatDiv_hyg779 snd_InitDataNatDiv_hyg817 :
+          Nat) ↦ SizeOf.sizeOf x_InitDataNatDiv_hyg779))
+    instWellFoundedRelation).0)
+(invImage
+  (fun (a_InitWF860InitDataNatDiv_hyg816 :
+      PSigma (fun (x : Nat) ↦ Nat)) ↦ PSigma.casesOn
+    a_InitWF860InitDataNatDiv_hyg816
+    (fun (x_InitDataNatDiv_hyg779 snd_InitDataNatDiv_hyg817 :
+        Nat) ↦ SizeOf.sizeOf x_InitDataNatDiv_hyg779))
+  instWellFoundedRelation).0  !=def  (invImage
+  (fun (a_InitWF860InitDataNatDiv_hyg816 :
+      PSigma (fun (x : Nat) ↦ Nat)) ↦ PSigma.casesOn
+    a_InitWF860InitDataNatDiv_hyg816
+    (fun (x_InitDataNatDiv_hyg779 snd_InitDataNatDiv_hyg817 :
+        Nat) ↦ SizeOf.sizeOf x_InitDataNatDiv_hyg779))
+  instWellFoundedRelation).0
+stuck on:  (invImage
+  (fun (a_InitWF860InitDataNatDiv_hyg816 :
+      PSigma (fun (x : Nat) ↦ Nat)) ↦ PSigma.casesOn
+    a_InitWF860InitDataNatDiv_hyg816
+    (fun (x_InitDataNatDiv_hyg779 snd_InitDataNatDiv_hyg817 :
+        Nat) ↦ SizeOf.sizeOf x_InitDataNatDiv_hyg779))
+  instWellFoundedRelation).0 (invImage
+  (fun (a_InitWF860InitDataNatDiv_hyg816 :
+      PSigma (fun (x : Nat) ↦ Nat)) ↦ PSigma.casesOn
+    a_InitWF860InitDataNatDiv_hyg816
+    (fun (x_InitDataNatDiv_hyg779 snd_InitDataNatDiv_hyg817 :
+        Nat) ↦ SizeOf.sizeOf x_InitDataNatDiv_hyg779))
+  instWellFoundedRelation).0
 SizeOf.sizeOf: (#0).0 (of class trepplein.Proj)
 Nat.mod.match_1: (#0).0 (of class trepplein.Proj)
 Mod.mod: (#0).0 (of class trepplein.Proj)

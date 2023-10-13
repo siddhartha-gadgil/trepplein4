@@ -248,7 +248,7 @@ class TypeChecker(
       Some(this),
       options = PrettyOptions(showImplicits = false)).pp(e).doc
 
-  def checkType(e: Expr, ty: Expr, message: String): Unit = {
+  def checkType(e: Expr, ty: Expr): Unit = {
     val inferredTy = infer(e)
     checkDefEq(ty, inferredTy) match {
       case IsDefEq =>
@@ -256,7 +256,6 @@ class TypeChecker(
         throw new IllegalArgumentException(
           Doc
             .stack(
-              Doc.spread("type error: " ++ message),
               Doc.spread("wrong type: ", ppError(e), " : ", ppError(ty)),
               Doc.spread("inferred type: ", ppError(inferredTy)),
               Doc.spread(ppError(t_), " !=def ", ppError(i_)),
@@ -307,8 +306,7 @@ class TypeChecker(
               if (shouldCheck)
                 checkType(
                   a,
-                  dom.ty.instantiate(0, ctx.toVector),
-                  s"within (type of `$fn`)  Pi-type `${dom}, ${body}` in `${fnt.toString().replace("\n", " ")}`; context: $ctx; args: $as; $as0; checking $e")
+                  dom.ty.instantiate(0, ctx.toVector))
               go(body, as_, a :: ctx) // should we be instantiating here?
             case (_, _ :: _) =>
               whnf(fnt.instantiate(0, ctx.toVector)) match {
@@ -343,9 +341,31 @@ class TypeChecker(
         Sort(go(e, Nil).simplify)
       case Let(domain, value, body) =>
         if (shouldCheck) inferUniverseOfType(domain.ty)
-        if (shouldCheck) checkType(value, domain.ty, "within let")
+        if (shouldCheck) checkType(value, domain.ty)
         infer(body.instantiate(value))
       case NatLit(n) =>
         Const(Name("Nat"), Vector())
+      case Proj(typeName, idx, struct) =>
+        val structType = infer(struct)
+        val structType_ = whnf(structType)
+        val Apps(structHead, structParams) = structType_
+        val decl = env.structIntros(typeName)
+        val levels = structHead.asInstanceOf[Const].levels
+        val constructorHead = Const(decl.name, levels)
+        val constructorType = infer(Apps(constructorHead, structParams))
+        val foldedType: Expr =
+          (0 until (idx)).foldLeft(constructorType) {
+            case (ty, i) =>
+              whnf(ty) match {
+                case Pi(domain, body) =>
+                  body.instantiate(0, Vector(Proj(typeName, i, struct)))
+                case e => throw new IllegalArgumentException(s"Expected Pi-type in projection, got $e")
+              }
+          }
+        val typ = whnf(foldedType) match {
+          case Pi(domain, body) => domain.ty
+          case e => throw new IllegalArgumentException(s"Expected Pi-type in projection, got $e")
+        }
+        typ
     })
 }
