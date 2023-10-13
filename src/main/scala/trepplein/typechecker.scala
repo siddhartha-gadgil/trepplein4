@@ -148,6 +148,9 @@ class TypeChecker(
         require(as1.isEmpty && as2.isEmpty)
         return checkDefEq(dom1.ty, dom2.ty) & withLC(dom1)(lc =>
           checkDefEqCore(b1.instantiate(lc), b2.instantiate(lc)))
+      case (Proj(typeName1, idx1, struct1), Proj(typeName2, idx2, struct2)) if idx1 == idx2 && typeName1 == typeName2 =>
+        require(as1.isEmpty && as2.isEmpty)
+        return checkDefEq(struct1, struct2)
       case (_, _) =>
         NotDefEq(e1, e2)
     }) match {
