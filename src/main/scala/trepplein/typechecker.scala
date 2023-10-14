@@ -228,8 +228,8 @@ class TypeChecker(
         whnfCore(Apps(body.instantiate(value), as))
       case Proj(typeName, idx, struct) =>
         whnf(struct) match {
-          case Apps(Const(name, _), structParams) if name == env.structIntros(typeName).name =>
-            structParams(idx)
+          case Apps(Const(name, _), structParams) if name == env.structIntros(typeName).intro.name =>
+            structParams.drop(env.structIntros(typeName).numParams)(idx)
           case e => e
         }
       case _ =>
@@ -360,7 +360,7 @@ class TypeChecker(
         val Apps(structHead, structParams) = structType_
         val decl = env.structIntros(typeName)
         val levels = structHead.asInstanceOf[Const].levels
-        val constructorHead = Const(decl.name, levels)
+        val constructorHead = Const(decl.intro.name, levels)
         val constructorType = infer(Apps(constructorHead, structParams))
         val foldedType: Expr =
           (0 until (idx)).foldLeft(constructorType) {

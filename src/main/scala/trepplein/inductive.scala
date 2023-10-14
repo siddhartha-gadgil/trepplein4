@@ -276,8 +276,8 @@ final case class CompiledIndMod(indMod: IndMod, env: PreEnvironment)
     for (i <- compiledIntros)
       yield Declaration(i.name, univParams, i.ty, builtin = true)
 
-  val structIntros: Map[Name, Declaration] =
-    if (isStructure) Map(name -> introDecls(0))
+  val structIntros: Map[Name, StructInfo] =
+    if (isStructure) Map(name -> StructInfo(name, introDecls(0), params.size))
     else Map()
 
   // val structRules: Vector[ReductionRule] =
