@@ -21,8 +21,8 @@ class NatTest extends Specification {
     val alpha = LocalConst(Binding("A", Sort(u), BinderInfo.Default))
     val x = LocalConst(Binding("x", alpha, BinderInfo.Default))
     val y = LocalConst(Binding("y", alpha, BinderInfo.Default))
-    IndMod("eq", Vector(u), Pi(alpha, alpha -->: alpha -->: Sort.Prop), 2,
-      Vector(Name("eq", "refl") -> Pis(alpha, x)(Apps(Const("eq", Vector(u)), alpha, x, x))))
+    IndMod("Eq", Vector(u), Pi(alpha, alpha -->: alpha -->: Sort.Prop), 2,
+      Vector(Name("Eq", "refl") -> Pis(alpha, x)(Apps(Const("Eq", Vector(u)), alpha, x, x))))
   }
 
   def env_ =
@@ -47,7 +47,7 @@ class NatTest extends Specification {
 
   "infer zeta" in {
     val x = LocalConst(Binding("x", nat, BinderInfo.Default))
-    val b = Let(x, numeral(0), Apps(Const("eq.refl", Vector(1)), nat, x))
+    val b = Let(x, numeral(0), Apps(Const("Eq.refl", Vector(1)), nat, x))
     b.hasLocals must_== false
     val ty = tc.infer(b)
     ty.hasLocals must_== false

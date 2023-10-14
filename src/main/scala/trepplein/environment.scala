@@ -268,7 +268,7 @@ sealed class PreEnvironment protected (
     val compiled: CompiledModification = mod.compile(this)
     val checkingTask: Future[Option[EnvironmentUpdateError]] = Future {
       Try(compiled.check()).failed.toOption.map(t =>
-        EnvironmentUpdateError(mod, t.toString()))
+        EnvironmentUpdateError(mod, t.getMessage()))
     }
     checkingTask -> new PreEnvironment(
       addDeclsFor(compiled),

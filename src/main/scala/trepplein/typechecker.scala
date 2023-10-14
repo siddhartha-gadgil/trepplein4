@@ -155,6 +155,8 @@ class TypeChecker(
         return checkArgs & checkDefEq(struct1, struct2)
       case (NatLit(n1), NatLit(n2)) =>
         return reqDefEq(n1 == n2, e1, e2, "nat literals must be equal")
+      case (StringLit(s1), StringLit(s2)) =>
+        return reqDefEq(s1 == s2, e1, e2, "string literals must be equal")
       case (_, _) =>
         NotDefEq(e1, e2)
     }) match {
@@ -361,6 +363,8 @@ class TypeChecker(
         infer(body.instantiate(value))
       case NatLit(n) =>
         Const(Name("Nat"), Vector())
+      case StringLit(n) =>
+        Const(Name("String"), Vector())
       case Proj(typeName, idx, struct) =>
         val structType = infer(struct)
         val structType_ = whnf(structType)

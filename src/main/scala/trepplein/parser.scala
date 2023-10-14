@@ -138,7 +138,10 @@ private final class LinesParser(
 
   def num(): Int = long().toInt
   def long(): Long =
-    next() match { case c if '0' <= c && c <= '9' => long(c - '0') }
+    next() match {
+      case c if '0' <= c && c <= '9' => long(c - '0')
+      case _ => throw new IllegalArgumentException(s"expected digit, got `${bytes(index - 1).toChar}`")
+    }
   def long(acc: Long): Long =
     cur() match {
       case c if '0' <= c && c <= '9' =>
@@ -152,6 +155,8 @@ private final class LinesParser(
     def nextNL(): Int = if (cur() == '\n') index else { next(); nextNL() }
     new String(bytes, start, math.max(nextNL() - start, 0), LinesParser.UTF8)
   }
+
+  def hex2int(hex: String): Int = Integer.parseInt(hex, 16)
 
   def nameRef(): Name = name(num())
   def nameDef(): Name =
@@ -205,6 +210,11 @@ private final class LinesParser(
             skip()
             val n = spc(num())
             NatLit(n)
+          case 'S' =>
+            skip()
+            val byteString = spc(rest())
+            val bytes = byteString.split(" ").map(hex2int(_).toChar)
+            StringLit(bytes.mkString)
           case c =>
             val b = spc(binderInfo())
             val n = spc(nameRef())

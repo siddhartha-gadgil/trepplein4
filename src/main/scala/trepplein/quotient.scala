@@ -13,7 +13,7 @@ object quotient {
   val A = LocalConst(Binding(Name("A"), Sort(univParams(0)), BinderInfo.Implicit))
   val R = LocalConst(Binding(Name("R"), A -->: A -->: Sort.Prop, BinderInfo.Default))
 
-  val quot = Declaration(Name("quot"), univParams, Pis(A, R)(Sort(univParams(0))), builtin = true)
+  val quot = Declaration(Name("Quot"), univParams, Pis(A, R)(Sort(univParams(0))), builtin = true)
 
   val quotMk = Declaration(Name.Str(quot.name, "mk"), univParams,
     Pis(A, R)(A -->: Apps(Const(quot.name, univParams), A, R)), builtin = true)
@@ -25,7 +25,7 @@ object quotient {
 
   val quotLift = Declaration(Name.Str(quot.name, "lift"), liftUnivParams,
     Pis(A, R, B, f)(
-      Pis(a, b)(Apps(R, a, b) -->: Apps(Const(Name("eq"), Vector(liftUnivParams(1))), B, App(f, a), App(f, b))) -->:
+      Pis(a, b)(Apps(R, a, b) -->: Apps(Const(Name("Eq"), Vector(liftUnivParams(1))), B, App(f, a), App(f, b))) -->:
         Apps(Const(quot.name, Vector(liftUnivParams(0))), A, R) -->: B),
     builtin = true)
 
@@ -34,7 +34,7 @@ object quotient {
   val quotInd = Declaration(Name.Str(quot.name, "ind"), univParams, Pis(A, R, B2)(
     Pi(a, Apps(B2, Apps(Const(quotMk.name, Vector(univParams(0))), A, R, a))) -->: Pi(q, Apps(B2, q))), builtin = true)
 
-  val h = LocalConst(Binding(Name("h"), Apps(Const(Name("eq"), Vector(liftUnivParams(1))), B, App(f, a), App(f, b)), BinderInfo.Default))
+  val h = LocalConst(Binding(Name("h"), Apps(Const(Name("Eq"), Vector(liftUnivParams(1))), B, App(f, a), App(f, b)), BinderInfo.Default))
   val quotRed = ReductionRule(
     Vector(A, R, B, f, a, h),
     Apps(Const(quotLift.name, univParams), A, R, B, f, h, Apps(Const(quotMk.name, Vector(univParams(0))), A, R, a)),

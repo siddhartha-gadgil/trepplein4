@@ -29,7 +29,7 @@ class LibraryPrinter(env: PreEnvironment, notations: Map[Name, Notation],
     if (printReductions && reds.nonEmpty) {
       doc = doc <> "/-" </> Doc.stack(reds.map {
         case ReductionRule(ctx, lhs, rhs, eqs) =>
-          def mkEq(a: Expr, b: Expr): Expr = Apps(Const("eq", Vector(1)), Sort.Prop, a, b)
+          def mkEq(a: Expr, b: Expr): Expr = Apps(Const("Eq", Vector(1)), Sort.Prop, a, b)
           val term1 = eqs.map((mkEq _).tupled).foldRight(mkEq(lhs, rhs))(_ -->: _)
           val term2 = ctx.foldRight(term1)(Lam(_, _))
           pp.parseBinders(term2) { (ctx_, t) =>
