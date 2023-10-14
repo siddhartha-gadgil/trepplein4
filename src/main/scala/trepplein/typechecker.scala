@@ -229,8 +229,9 @@ class TypeChecker(
       case Proj(typeName, idx, struct) =>
         whnf(struct) match {
           case Apps(Const(name, _), structParams) if name == env.structIntros(typeName).intro.name =>
-            structParams.drop(env.structIntros(typeName).numParams)(idx)
-          case e => e
+            val x = structParams.drop(env.structIntros(typeName).numParams)(idx)
+            whnfCore(Apps(x, as))
+          case _ => e
         }
       case _ =>
         reduceOneStep(fn, as) match {
