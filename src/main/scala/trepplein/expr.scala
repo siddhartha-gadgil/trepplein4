@@ -527,6 +527,15 @@ case class NatLit(n: Int) extends Expr(
   hasLocals = false,
   hashCode = 6 + 37 * n)
 
+object NatLit {
+  def expand(n: Int): Expr = {
+    if (n == 0) {
+      Const(Name("Nat", "zero"), Vector())
+    } else {
+      App(Const(Name("Nat", "succ"), Vector()), expand(n - 1))
+    }
+  }
+}
 case class StringLit(s: String) extends Expr(
   varBound = 0,
   hasLocals = false,

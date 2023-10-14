@@ -77,8 +77,10 @@ class TypeChecker(
   private def isProofIrrelevantEq(e1: Expr, e2: Expr): Boolean =
     isProof(e1) && isProof(e2)
 
-  private def reqDefEq(cond: Boolean, e1: Expr, e2: Expr) =
-    if (cond) IsDefEq else NotDefEq(e1, e2)
+  private def reqDefEq(cond: Boolean, e1: Expr, e2: Expr, message: String) =
+    if (cond) IsDefEq else {
+      NotDefEq(e1, e2)
+    }
 
   def isDefEq(e1: Expr, e2: Expr): Boolean = checkDefEq(e1, e2) == IsDefEq
 
@@ -122,14 +124,14 @@ class TypeChecker(
     val e1 @ Apps(fn1, as1) = whnfCore(e1_0)(transparency)
     val e2 @ Apps(fn2, as2) = whnfCore(e2_0)(transparency)
     def checkArgs: DefEqRes =
-      reqDefEq(as1.size == as2.size, e1, e2) &
+      reqDefEq(as1.size == as2.size, e1, e2, "argument sizes must match") &
         IsDefEq.forall(as1.lazyZip(as2).view.map {
           case (a, b) =>
             checkDefEq(a, b)
         })
     ((fn1, fn2) match {
       case (Sort(l1), Sort(l2)) =>
-        return reqDefEq(isDefEq(l1, l2) && as1.isEmpty && as2.isEmpty, e1, e2)
+        return reqDefEq(isDefEq(l1, l2) && as1.isEmpty && as2.isEmpty, e1, e2, "universes must have the same levels")
       case (Const(c1, ls1), Const(c2, ls2)) if c1 == c2 && ls1.lazyZip(ls2).forall(isDefEq) =>
         checkArgs
       case (LocalConst(_, i1), LocalConst(_, i2)) if i1 == i2 =>
@@ -151,6 +153,8 @@ class TypeChecker(
       case (Proj(typeName1, idx1, struct1), Proj(typeName2, idx2, struct2)) if idx1 == idx2 && typeName1 == typeName2 =>
         // require(as1.isEmpty && as2.isEmpty, "unexpected arguments to projection")
         return checkArgs & checkDefEq(struct1, struct2)
+      case (NatLit(n1), NatLit(n2)) =>
+        return reqDefEq(n1 == n2, e1, e2, "nat literals must be equal")
       case (_, _) =>
         NotDefEq(e1, e2)
     }) match {
@@ -233,6 +237,8 @@ class TypeChecker(
             whnfCore(Apps(x, as))
           case _ => e
         }
+      case NatLit(n) =>
+        NatLit.expand(n)
       case _ =>
         reduceOneStep(fn, as) match {
           case Some(e_) => whnfCore(e_)
@@ -262,7 +268,7 @@ class TypeChecker(
     val inferredTy = infer(e)
     checkDefEq(ty, inferredTy) match {
       case IsDefEq =>
-      case NotDefEq(t_, i_) =>
+      case neq @ NotDefEq(t_, i_) =>
         throw new IllegalArgumentException(
           Doc
             .stack(
