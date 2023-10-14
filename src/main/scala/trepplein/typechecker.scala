@@ -226,6 +226,12 @@ class TypeChecker(
         whnfCore(go(fn, Nil, as))
       case Let(_, value, body) =>
         whnfCore(Apps(body.instantiate(value), as))
+      case Proj(typeName, idx, struct) =>
+        whnf(struct) match {
+          case Apps(Const(name, _), structParams) if name == env.structIntros(typeName).name =>
+            structParams(idx)
+          case e => e
+        }
       case _ =>
         reduceOneStep(fn, as) match {
           case Some(e_) => whnfCore(e_)
