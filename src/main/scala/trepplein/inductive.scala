@@ -289,10 +289,11 @@ final case class CompiledIndMod(indMod: IndMod, env: PreEnvironment)
           Proj(name, i, majorPremise)
         }
         val elem = Apps(Const(name, univParams), params ++ intro.arguments)
+        val lhs = Apps(Const(intro.name, univParams), params ++ projArgs)
         Vector(
           ReductionRule(
             (params :+ majorPremise).toVector,
-            Apps(Const(intro.name, univParams), params ++ projArgs),
+            lhs,
             majorPremise,
             List()))
       }

@@ -78,7 +78,8 @@ class TypeChecker(
     isProof(e1) && isProof(e2)
 
   private def reqDefEq(cond: Boolean, e1: Expr, e2: Expr, message: String) =
-    if (cond) IsDefEq else {
+    if (cond) IsDefEq
+    else {
       NotDefEq(e1, e2)
     }
 
@@ -131,7 +132,11 @@ class TypeChecker(
         })
     ((fn1, fn2) match {
       case (Sort(l1), Sort(l2)) =>
-        return reqDefEq(isDefEq(l1, l2) && as1.isEmpty && as2.isEmpty, e1, e2, "universes must have the same levels")
+        return reqDefEq(
+          isDefEq(l1, l2) && as1.isEmpty && as2.isEmpty,
+          e1,
+          e2,
+          "universes must have the same levels")
       case (Const(c1, ls1), Const(c2, ls2)) if c1 == c2 && ls1.lazyZip(ls2).forall(isDefEq) =>
         checkArgs
       case (LocalConst(_, i1), LocalConst(_, i2)) if i1 == i2 =>
@@ -280,6 +285,10 @@ class TypeChecker(
               Doc.spread(
                 Seq[Doc]("stuck on: ") ++ Seq(t_, i_)
                   .flatMap(stuck)
+                  .map(ppError)),
+              Doc.spread(
+                Seq[Doc]("stuck on types: ") ++ Seq(infer(t_), infer(i_))
+                  .flatMap(stuck)
                   .map(ppError)))
             .render(80))
     }
@@ -309,7 +318,7 @@ class TypeChecker(
       case Sort(level) =>
         Sort(Level.Succ(level))
       case Const(name, levels) =>
-        val decl = env(name)
+        val decl = env.get(name).getOrElse(throw new IllegalArgumentException(s"unknown constant: $name"))
         require(
           decl.univParams.size == levels.size,
           s"incorrect number of universe parameters: $e, expected ${decl.univParams}")
@@ -322,9 +331,7 @@ class TypeChecker(
             case (_, Nil) => fnt.instantiate(0, ctx.toVector)
             case (Pi(dom, body), a :: as_) =>
               if (shouldCheck)
-                checkType(
-                  a,
-                  dom.ty.instantiate(0, ctx.toVector))
+                checkType(a, dom.ty.instantiate(0, ctx.toVector))
               go(body, as_, a :: ctx) // should we be instantiating here?
             case (_, _ :: _) =>
               whnf(fnt.instantiate(0, ctx.toVector)) match {
@@ -379,12 +386,16 @@ class TypeChecker(
               whnf(ty) match {
                 case Pi(domain, body) =>
                   body.instantiate(0, Vector(Proj(typeName, i, struct)))
-                case e => throw new IllegalArgumentException(s"Expected Pi-type in projection, got $e")
+                case e =>
+                  throw new IllegalArgumentException(
+                    s"Expected Pi-type in projection, got $e")
               }
           }
         val typ = whnf(foldedType) match {
           case Pi(domain, body) => domain.ty
-          case e => throw new IllegalArgumentException(s"Expected Pi-type in projection, got $e")
+          case e =>
+            throw new IllegalArgumentException(
+              s"Expected Pi-type in projection, got $e")
         }
         typ
     })

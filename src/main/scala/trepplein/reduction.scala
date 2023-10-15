@@ -46,6 +46,8 @@ final case class ReductionRule(ctx: Vector[Binding], lhs: Expr, rhs: Expr, defEq
           true
         case (Var(i), _) =>
           subst(i) = b; true
+        case (Proj(t1, i1, Var(i)), Proj(t2, i2, b2)) if i1 == i2 && t1 == t2 =>
+          subst(i) = b2; true
         case (_, _) => false
       }
 
@@ -124,5 +126,5 @@ final class ReductionMap private (keyMap: Map[Name, (Vector[ReductionRule], Set[
     }
 }
 object ReductionMap {
-  def apply() = new ReductionMap(keyMap = Map().withDefaultValue(Vector() -> Set()))
+  def apply(): ReductionMap = new ReductionMap(keyMap = Map().withDefaultValue(Vector() -> Set()))
 }
