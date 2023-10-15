@@ -280,18 +280,23 @@ final case class CompiledIndMod(indMod: IndMod, env: PreEnvironment)
     if (isStructure) Map(name -> StructInfo(name, introDecls(0), params.size))
     else Map()
 
-  // val structRules: Vector[ReductionRule] =
-  //   if (isStructure) {
-  //     val intro = compiledIntros(0)
-  //     val elem = Apps(Const(name, univParams), params ++ intro.arguments)
-  //     (0 until intro.arguments.size).map { i =>
-  //       ReductionRule(
-  //         (params ++ intro.arguments).toVector,
-  //         Proj(name, i, elem),
-  //         elem,
-  //         List())
-  //     }.toVector
-  //   } else Vector()
+  val structRules: Vector[ReductionRule] =
+    if (isStructure) {
+      val intro = compiledIntros(0)
+      if (intro.arguments.size == 0) Vector()
+      else {
+        val projArgs = Vector.range(0, intro.arguments.size).map { i =>
+          Proj(name, i, majorPremise)
+        }
+        val elem = Apps(Const(name, univParams), params ++ intro.arguments)
+        Vector(
+          ReductionRule(
+            (params :+ majorPremise).toVector,
+            Apps(Const(intro.name, univParams), params ++ projArgs),
+            majorPremise,
+            List()))
+      }
+    } else Vector()
 
   val decls: Vector[Declaration] =
     Declaration(name, univParams, ty, builtin = true) +: introDecls :+ elimDecl
@@ -299,7 +304,7 @@ final case class CompiledIndMod(indMod: IndMod, env: PreEnvironment)
     if (kIntroRule.isDefined)
       kIntroRule.toVector
     else
-      compiledIntros.map(_.redRule) // ++ structRules
+      compiledIntros.map(_.redRule) ++ structRules
 
   def check(): Unit = {
     val withType: PreEnvironment = env.addNow(decl)

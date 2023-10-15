@@ -27,7 +27,7 @@ final case class ReductionRule(ctx: Vector[Binding], lhs: Expr, rhs: Expr, defEq
   require(!rhs.hasLocals, "reduction rule right-hand side must not have locals")
 
   val varBound: Int = lhs.varBound
-  require(rhs.varBound <= varBound, "reduction rule right-hand side must not have more variables than the left-hand side")
+  require(rhs.varBound <= varBound, s"reduction rule right-hand side $rhs must not have more variables than the left-hand side $lhs, but it has ${rhs.varBound} variables while the left-hand side has $varBound variables")
 
   val Apps(Const(lhsConst, _), lhsArgs) = lhs
   val lhsArgsSize: Int = lhsArgs.size
