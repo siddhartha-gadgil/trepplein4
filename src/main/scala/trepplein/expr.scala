@@ -132,9 +132,9 @@ sealed abstract class Expr(
       case Let(dom, value, body) =>
         dom.ty.hasVar(i) || value.hasVar(i) || body.hasVar(i + 1)
       case Proj(typeName, idx, struct) => struct.hasVar(i)
-      // case expr =>
-      //   throw new IllegalArgumentException(
-      //     s"hasVar($i) called on $expr which has varBound $varBound greater than $i")
+      case expr =>
+        throw new IllegalArgumentException(
+          s"hasVar($i) called on $expr which has varBound $varBound greater than $i")
     }
   }
 
@@ -263,9 +263,9 @@ sealed abstract class Expr(
           body.instantiateCore(off + 1, es))
       case Proj(typeName, idx, struct) =>
         Proj(typeName, idx, struct.instantiateCore(off, es))
-      // case _ =>
-      //   throw new IllegalArgumentException(
-      //     s"instantiateCore($off, $es) called on $this which has varBound $varBound which is greater than offset $off")
+      case _ =>
+        throw new IllegalArgumentException(
+          s"instantiateCore($off, $es) called on $this which has varBound $varBound which is greater than offset $off")
     }
 
   /**

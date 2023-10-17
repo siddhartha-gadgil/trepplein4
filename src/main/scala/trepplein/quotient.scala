@@ -50,6 +50,8 @@ case object QuotMod extends Modification {
     val rules = Seq(quotRed)
 
     val structIntros = Map()
+
+    val indMods: Map[Name, IndMod] = Map()
     override def check(): Unit =
       decls.foldLeft(env)((env, decl) => env.addNow(decl))
   }

@@ -39,6 +39,31 @@ final case class CompiledIndMod(indMod: IndMod, env: PreEnvironment)
    */
   val indTyWParams: Expr = Apps(indTy, params)
 
+  def introHeads(introType: Expr, introParams: List[Expr]): List[(Name, List[Expr], List[Expr])] = {
+    val NormalizedPis(arguments, _) =
+      NormalizedPis.instantiate(introType, introParams)
+    arguments.flatMap {
+      case LocalConst(
+        Binding(
+          _,
+          NormalizedPis(
+            eps,
+            Apps(recArgIndTy @ Const(modName, _), recArgs)
+            ),
+          _
+          ),
+        _
+        ) =>
+        env.indMods.get(modName).flatMap {
+          indMod: IndMod =>
+            if (indMod.numParams > recArgs.size) None
+            else {
+              Some(indMod.name, eps, recArgs.take(indMod.numParams))
+            }
+        }
+      case _ => None
+    }
+  }
   case class CompiledIntro(name: Name, ty: Expr) {
     val NormalizedPis(arguments, Apps(introType, introTyArgs)) =
       NormalizedPis.instantiate(ty, params)
@@ -149,7 +174,12 @@ final case class CompiledIndMod(indMod: IndMod, env: PreEnvironment)
       val tc0 = new TypeChecker(env)
       arguments.zip(argInfos).foreach {
         case (_, Left(nonRecArg)) =>
-          tc0.inferUniverseOfType(tc0.infer(nonRecArg))
+          try { tc0.inferUniverseOfType(tc0.infer(nonRecArg)) }
+          catch {
+            case t: Throwable =>
+              println(s"Error in $name while checking non-recursive argument $nonRecArg of type ${tc0.infer(nonRecArg)}")
+              throw t
+          }
         case (_, Right((eps, _))) =>
           for (e <- eps) tc0.inferUniverseOfType(tc0.infer(e))
       }
@@ -279,6 +309,8 @@ final case class CompiledIndMod(indMod: IndMod, env: PreEnvironment)
   val structIntros: Map[Name, StructInfo] =
     if (isStructure) Map(name -> StructInfo(name, introDecls(0), params.size))
     else Map()
+
+  val indMods: Map[Name, IndMod] = Map(indMod.name -> indMod)
 
   val structRules: Vector[ReductionRule] =
     if (isStructure) {

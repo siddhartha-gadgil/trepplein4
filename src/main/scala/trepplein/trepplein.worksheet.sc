@@ -132,3 +132,5 @@ compiledIntros(1).arguments
 
 
 natIndComp.compiledIntros.map(_.arguments)
+
+Const("Nat", Vector()).constants

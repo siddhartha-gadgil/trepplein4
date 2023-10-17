@@ -398,5 +398,6 @@ class TypeChecker(
               s"Expected Pi-type in projection, got $e")
         }
         typ
+      case App(a, b) => throw new IllegalArgumentException("Unexpectedly matched App when Apps was a case")
     })
 }

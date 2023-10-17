@@ -84,6 +84,8 @@ trait CompiledModification {
   def rules: Seq[ReductionRule]
 
   def structIntros: Map[Name, StructInfo]
+
+  def indMods: Map[Name, IndMod]
 }
 
 /**
@@ -143,6 +145,7 @@ final case class AxiomMod(name: Name, univParams: Vector[Level.Param], ty: Expr)
       def decls: Seq[Declaration] = Seq(decl)
       def rules: Seq[ReductionRule] = Seq()
       def structIntros: Map[Name, StructInfo] = Map()
+      val indMods: Map[Name, IndMod] = Map()
     }
 }
 final case class DefMod(
@@ -176,6 +179,7 @@ final case class DefMod(
       def decls: Seq[Declaration] = Seq(decl)
       def rules: Seq[ReductionRule] = Seq(rule)
       def structIntros: Map[Name, StructInfo] = Map()
+      val indMods: Map[Name, IndMod] = Map()
     }
 }
 
@@ -187,6 +191,7 @@ final case class StructMod(name: Name, decl: Declaration, numParams: Int)
       def decls: Seq[Declaration] = Seq(decl)
       def rules: Seq[ReductionRule] = Seq()
       def structIntros: Map[Name, StructInfo] = Map(name -> StructInfo(name, decl, numParams))
+      val indMods: Map[Name, IndMod] = Map()
     }
 }
 
@@ -208,6 +213,7 @@ sealed class PreEnvironment protected (
     val declarations: Map[Name, Declaration],
     val reductions: ReductionMap,
     val structIntros: Map[Name, StructInfo],
+    val indMods: Map[Name, IndMod],
     val proofObligations: List[Future[Option[EnvironmentUpdateError]]]) {
 
   /**
@@ -277,6 +283,7 @@ sealed class PreEnvironment protected (
       addDeclsFor(compiled),
       reductions ++ compiled.rules,
       structIntros ++ compiled.structIntros,
+      indMods ++ compiled.indMods,
       checkingTask :: proofObligations)
   }
 
@@ -293,6 +300,7 @@ sealed class PreEnvironment protected (
       addDeclsFor(compiled),
       reductions ++ compiled.rules,
       structIntros ++ compiled.structIntros,
+      indMods ++ compiled.indMods,
       proofObligations)
   }
 
@@ -328,7 +336,8 @@ sealed class PreEnvironment protected (
 final class Environment private (
     declarations: Map[Name, Declaration],
     reductionMap: ReductionMap,
-    structIntros: Map[Name, StructInfo]) extends PreEnvironment(declarations, reductionMap, structIntros, Nil)
+    structIntros: Map[Name, StructInfo],
+    indMods: Map[Name, IndMod]) extends PreEnvironment(declarations, reductionMap, structIntros, indMods, Nil)
 object Environment {
   /**
    * From a pre-environment, obtain an environment or an error in the future, depending on whether all the
@@ -345,7 +354,8 @@ object Environment {
           new Environment(
             preEnvironment.declarations,
             preEnvironment.reductions,
-            preEnvironment.structIntros))
+            preEnvironment.structIntros,
+            preEnvironment.indMods))
       case exs => Left(exs)
     }
 
@@ -354,5 +364,5 @@ object Environment {
    *
    * @return The empty environment
    */
-  def default: Environment = new Environment(Map(), ReductionMap(), Map())
+  def default: Environment = new Environment(Map(), ReductionMap(), Map(), Map())
 }
