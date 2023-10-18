@@ -11,7 +11,7 @@ import trepplein.Level.Param
  *   The pre-environment in which the inductive type declaration is compiled.
  */
 final case class CompiledIndMod(indMod: IndMod, env: PreEnvironment)
-  extends CompiledModification {
+  extends CompiledModification { comp =>
   import indMod._
   val tc = new TypeChecker(env.addNow(decl))
   import tc.NormalizedPis
@@ -39,7 +39,9 @@ final case class CompiledIndMod(indMod: IndMod, env: PreEnvironment)
    */
   val indTyWParams: Expr = Apps(indTy, params)
 
-  def introHeads(introType: Expr, introParams: List[Expr]): List[(Name, List[Expr], List[Expr])] = {
+  def introHeads(
+    introType: Expr,
+    introParams: List[Expr]): List[(Name, List[Expr])] = {
     val NormalizedPis(arguments, _) =
       NormalizedPis.instantiate(introType, introParams)
     arguments.flatMap {
@@ -48,22 +50,82 @@ final case class CompiledIndMod(indMod: IndMod, env: PreEnvironment)
           _,
           NormalizedPis(
             eps,
-            Apps(recArgIndTy @ Const(modName, _), recArgs)
+            Apps(Const(modName, _), recArgs)
             ),
           _
           ),
         _
         ) =>
-        env.indMods.get(modName).flatMap {
-          indMod: IndMod =>
-            if (indMod.numParams > recArgs.size) None
-            else {
-              Some(indMod.name, eps, recArgs.take(indMod.numParams))
-            }
+        env.indMods.get(modName).flatMap { indMod: IndMod =>
+          if (indMod.numParams > recArgs.size) None
+          else if (recArgs
+            .take(indMod.numParams)
+            .exists(arg => arg.constants.contains(name))) {
+            // println(s"Found recursive argument in $name, arguments: $arguments, recArgs: $recArgs")
+            Some(indMod.name, recArgs.take(indMod.numParams))
+          } else None
         }
       case _ => None
     }
   }
+
+  case class FilledIndMod(mod: IndMod, params: List[Expr]) { filled =>
+    val indTy = Apps(Const(mod.name, mod.univParams), params)
+
+    val indices =
+      ty match {
+        case NormalizedPis(indices: List[LocalConst], Sort(lvl: Level)) =>
+          indices
+        case _ =>
+          throw new IllegalArgumentException(
+            s"Type $ty did not match as a NormalizedPis even with empty doms")
+      }
+
+    val introNamedTys: Vector[(Name, Expr)] = mod.intros.map {
+      case (name, ty) => (name, NormalizedPis.instantiate(ty, params))
+    }
+
+    val introTyps = introNamedTys.map(_._2)
+
+    /**
+     * The motive type for the elimination type.
+     */
+    val motiveType: Expr =
+      Pis(
+        indices :+ LocalConst(
+          Binding("c", Apps(indTy, indices), BinderInfo.Default)))(Sort(elimLevel))
+
+    /**
+     * Variable for the motive.
+     */
+    val motive: LocalConst = LocalConst(
+      Binding("C", motiveType, BinderInfo.Implicit))
+  }
+
+  def introHeadsRec(
+    accum: Vector[(Name, List[Expr])],
+    indTypes: Vector[(Name, List[Expr])]): Vector[(Name, List[Expr])] = {
+    val heads = indTypes.flatMap {
+      case (indType, indParams) =>
+        val indMod = env.indMods(indType)
+        val introTypes = indMod.intros.map(_._2)
+        introTypes.flatMap(introType => introHeads(introType, indParams))
+    }
+    val newHeads = heads.filterNot(accum.contains(_)).distinct
+    val newAccum = accum ++ newHeads
+    if (newHeads.isEmpty) accum else introHeadsRec(newAccum, newHeads)
+  }
+
+  val initIntroHeads = intros.flatMap {
+    case (name, ty) =>
+      introHeads(ty, params)
+  }
+  if (initIntroHeads.nonEmpty)
+    println(s"Saw intro heads $initIntroHeads in $name")
+  val allIntroHeads = introHeadsRec(initIntroHeads, initIntroHeads)
+  if (allIntroHeads.nonEmpty)
+    println(s"Found intro heads $allIntroHeads in $name")
+
   case class CompiledIntro(name: Name, ty: Expr) {
     val NormalizedPis(arguments, Apps(introType, introTyArgs)) =
       NormalizedPis.instantiate(ty, params)
@@ -177,7 +239,8 @@ final case class CompiledIndMod(indMod: IndMod, env: PreEnvironment)
           try { tc0.inferUniverseOfType(tc0.infer(nonRecArg)) }
           catch {
             case t: Throwable =>
-              println(s"Error in $name while checking non-recursive argument $nonRecArg of type ${tc0.infer(nonRecArg)}")
+              println(
+                s"Error in $name while checking non-recursive argument $nonRecArg of type ${tc0.infer(nonRecArg)}")
               throw t
           }
         case (_, Right((eps, _))) =>
@@ -249,6 +312,17 @@ final case class CompiledIndMod(indMod: IndMod, env: PreEnvironment)
   def mkMotiveApp(indices: Seq[Expr], e: Expr): Expr =
     App(Apps(motive, indices), e)
 
+  val filledIndMods: Vector[FilledIndMod] = allIntroHeads.map {
+    case (indName, indParams) =>
+      FilledIndMod(env.indMods(indName), indParams)
+  }
+
+  filledIndMods.foreach { filled =>
+    println(s"Filled inductive type ${filled.mod.name}, type ${filled.mod.ty} with params ${filled.params} and indices ${filled.indices}")
+    println(s"Obtained instantiated type ${filled.indTy}")
+    println(s"Obtained motive type ${filled.motiveType} (compare with $motiveType)")
+
+  }
   /**
    * The minor premises for the introduction rules.
    */
