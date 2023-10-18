@@ -12,7 +12,7 @@ import trepplein.Level.Param
  */
 final case class CompiledIndMod(indMod: IndMod, env: PreEnvironment)
   extends CompiledModification { comp =>
-  import indMod._
+  import indMod._, CompiledIndMod._
   val tc = new TypeChecker(env.addNow(decl))
   import tc.NormalizedPis
 
@@ -69,39 +69,6 @@ final case class CompiledIndMod(indMod: IndMod, env: PreEnvironment)
     }
   }
 
-  case class FilledIndMod(mod: IndMod, params: List[Expr]) { filled =>
-    val indTy = Apps(Const(mod.name, mod.univParams), params)
-
-    val indices =
-      ty match {
-        case NormalizedPis(indices: List[LocalConst], Sort(lvl: Level)) =>
-          indices
-        case _ =>
-          throw new IllegalArgumentException(
-            s"Type $ty did not match as a NormalizedPis even with empty doms")
-      }
-
-    val introNamedTys: Vector[(Name, Expr)] = mod.intros.map {
-      case (name, ty) => (name, NormalizedPis.instantiate(ty, params))
-    }
-
-    val introTyps = introNamedTys.map(_._2)
-
-    /**
-     * The motive type for the elimination type.
-     */
-    val motiveType: Expr =
-      Pis(
-        indices :+ LocalConst(
-          Binding("c", Apps(indTy, indices), BinderInfo.Default)))(Sort(elimLevel))
-
-    /**
-     * Variable for the motive.
-     */
-    val motive: LocalConst = LocalConst(
-      Binding("C", motiveType, BinderInfo.Implicit))
-  }
-
   def introHeadsRec(
     accum: Vector[(Name, List[Expr])],
     indTypes: Vector[(Name, List[Expr])]): Vector[(Name, List[Expr])] = {
@@ -131,7 +98,7 @@ final case class CompiledIndMod(indMod: IndMod, env: PreEnvironment)
       NormalizedPis.instantiate(ty, params)
     val introTyIndices: List[Expr] = introTyArgs.drop(numParams)
 
-    type ArgInfo = Either[Expr, (List[LocalConst], List[Expr])]
+    import CompiledIndMod.ArgInfo
 
     /**
      * Arguments separated into those that are recursive and those that are
@@ -153,14 +120,14 @@ final case class CompiledIndMod(indMod: IndMod, env: PreEnvironment)
         tc.requireDefEq(
           Apps(recArgIndTy, recArgs.take(numParams)),
           indTyWParams)
-        Right((eps, recArgs.drop(numParams)))
-      case nonRecArg => Left(nonRecArg)
+        RecArg(eps, recArgs.drop(numParams))
+      case nonRecArg => NonRecArg(nonRecArg)
     }
 
     /**
      * Whether all arguments are non-recursive.
      */
-    val nonRec: Boolean = argInfos.forall(_.isLeft)
+    val nonRec: Boolean = argInfos.forall(_.isNonRec)
 
     /**
      * Variables corresponding to recursive arguments.
@@ -172,7 +139,7 @@ final case class CompiledIndMod(indMod: IndMod, env: PreEnvironment)
     lazy val ihs: List[LocalConst] = arguments
       .lazyZip(argInfos)
       .collect {
-        case (recArg, Right((eps, recIndices))) =>
+        case (recArg, RecArg(eps, recIndices)) =>
           LocalConst(
             Binding(
               "ih",
@@ -208,7 +175,7 @@ final case class CompiledIndMod(indMod: IndMod, env: PreEnvironment)
      */
     lazy val redRule: ReductionRule = {
       val recCalls = arguments.zip(argInfos).collect {
-        case (recArg, Right((eps, recArgIndices))) =>
+        case (recArg, RecArg(eps, recArgIndices)) =>
           Lams(eps)(
             Apps(
               Const(elimDecl.name, elimLevelParams),
@@ -235,7 +202,7 @@ final case class CompiledIndMod(indMod: IndMod, env: PreEnvironment)
 
       val tc0 = new TypeChecker(env)
       arguments.zip(argInfos).foreach {
-        case (_, Left(nonRecArg)) =>
+        case (_, NonRecArg(nonRecArg)) =>
           try { tc0.inferUniverseOfType(tc0.infer(nonRecArg)) }
           catch {
             case t: Throwable =>
@@ -243,7 +210,7 @@ final case class CompiledIndMod(indMod: IndMod, env: PreEnvironment)
                 s"Error in $name while checking non-recursive argument $nonRecArg of type ${tc0.infer(nonRecArg)}")
               throw t
           }
-        case (_, Right((eps, _))) =>
+        case (_, RecArg(eps, _)) =>
           for (e <- eps) tc0.inferUniverseOfType(tc0.infer(e))
       }
 
@@ -312,9 +279,42 @@ final case class CompiledIndMod(indMod: IndMod, env: PreEnvironment)
   def mkMotiveApp(indices: Seq[Expr], e: Expr): Expr =
     App(Apps(motive, indices), e)
 
-  val filledIndMods: Vector[FilledIndMod] = allIntroHeads.map {
-    case (indName, indParams) =>
-      FilledIndMod(env.indMods(indName), indParams)
+  case class FilledIndMod(mod: IndMod, params: List[Expr], num: Int) { filled =>
+    val indTy = Apps(Const(mod.name, mod.univParams), params)
+
+    val indices =
+      ty match {
+        case NormalizedPis(indices: List[LocalConst], Sort(lvl: Level)) =>
+          indices
+        case _ =>
+          throw new IllegalArgumentException(
+            s"Type $ty did not match as a NormalizedPis even with empty doms")
+      }
+
+    val introNamedTys: Vector[(Name, Expr)] = mod.intros.map {
+      case (name, ty) => (name, NormalizedPis.instantiate(ty, params))
+    }
+
+    val introTyps = introNamedTys.map(_._2)
+
+    /**
+     * The motive type for the elimination type.
+     */
+    val motiveType: Expr =
+      Pis(
+        indices :+ LocalConst(
+          Binding("c", Apps(indTy, indices), BinderInfo.Default)))(Sort(elimLevel))
+
+    /**
+     * Variable for the motive.
+     */
+    val motive: LocalConst = LocalConst(
+      Binding("C" + num, motiveType, BinderInfo.Implicit))
+  }
+
+  val filledIndMods: Vector[FilledIndMod] = allIntroHeads.zipWithIndex.map {
+    case ((indName, indParams), n) =>
+      FilledIndMod(env.indMods(indName), indParams, n + 1)
   }
 
   filledIndMods.foreach { filled =>
@@ -422,6 +422,23 @@ final case class CompiledIndMod(indMod: IndMod, env: PreEnvironment)
 
     for (i <- compiledIntros) i.check()
   }
+}
+
+object CompiledIndMod {
+  sealed trait ArgInfo {
+    val isNonRec: Boolean
+  }
+  case class NonRecArg(expr: Expr) extends ArgInfo {
+    val isNonRec = true
+  }
+  case class RecArg(es: List[LocalConst], params: List[Expr]) extends ArgInfo {
+    val isNonRec = false
+  }
+
+  case class MutRecArg(es: List[LocalConst], modName: Name, params: List[Expr]){
+    val isNonRec = false
+  }
+
 }
 
 /**
