@@ -417,6 +417,22 @@ sealed abstract class Expr(
     }
 }
 
+object Expr {
+  def locals(exp: Expr): List[LocalConst] = exp match {
+    case Var(idx) => List()
+    case Sort(level) => List()
+    case Const(name, levels) => List()
+    case lc @ LocalConst(of, name) => List(lc)
+    case App(a, b) => locals(a) ++ locals(b)
+    case Lam(domain, body) => locals(domain.ty) ++ locals(body)
+    case Pi(domain, body) => locals(domain.ty) ++ locals(body)
+    case Let(domain, value, body) => locals(domain.ty) ++ locals(value) ++ locals(body)
+    case Proj(typeName, idx, struct) => locals(struct)
+    case NatLit(n) => List()
+    case StringLit(s) => List()
+  }
+}
+
 /**
  * A variable with de Bruijn indexing.
  *

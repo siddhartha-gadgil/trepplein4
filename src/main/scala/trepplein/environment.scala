@@ -44,9 +44,9 @@ final case class Declaration(
    */
   def check(env: PreEnvironment, tc: TypeChecker): Unit = {
     require(!env.declarations.contains(name), "name already in environment")
-    require(ty.univParams.subsetOf(univParams.toSet), "universe parameters not in scope")
+    require(ty.univParams.subsetOf(univParams.toSet), s"universe parameters ${ty.univParams} of $ty not in scope ${univParams.toSet}")
     require(!ty.hasVars, "variables in type")
-    require(!ty.hasLocals, "locals in type")
+    require(!ty.hasLocals, s"for declaration $name locals in type $ty; ${Expr.locals(ty)}")
     tc.inferUniverseOfType(ty)
   }
 }

@@ -50,7 +50,7 @@ final case class CompiledIndMod(indMod: IndMod, env: PreEnvironment)
           _,
           NormalizedPis(
             eps,
-            Apps(Const(modName, _), recArgs)
+            head @ Apps(Const(modName, levels), recArgs)
             ),
           _
           ),
@@ -61,7 +61,7 @@ final case class CompiledIndMod(indMod: IndMod, env: PreEnvironment)
           else if (recArgs
             .take(indMod.numParams)
             .exists(arg => arg.constants.contains(name))) {
-            // println(s"Found recursive argument in $name, arguments: $arguments, recArgs: $recArgs")
+            println(s"Found recursive argument in $name, arguments: $arguments, recArgs: $recArgs, headLevels: ${head.univParams}, levels: $levels")
             Some(indMod.name, recArgs.take(indMod.numParams))
           } else None
         }
@@ -164,6 +164,12 @@ final case class CompiledIndMod(indMod: IndMod, env: PreEnvironment)
               "ih",
               Pis(eps)(mkMotiveApp(recIndices, Apps(recArg, eps))),
               BinderInfo.Default))
+        // case (mutRecArg, MutRecArg(eps, name, params, recIndices)) =>
+        //   LocalConst(
+        //     Binding(
+        //       "ih",
+        //       Pis(eps)(filledMod((name, params)).mkMotiveApp(recIndices, Apps(mutRecArg, eps))),
+        //       BinderInfo.Default))
       }
       .toList
 
@@ -201,10 +207,18 @@ final case class CompiledIndMod(indMod: IndMod, env: PreEnvironment)
               params ++ Seq(motive) ++ minorPremises ++ recArgIndices :+ Apps(
                 recArg,
                 eps)))
+        case (mutRecArg, MutRecArg(eps, name, params, recArgIndices)) =>
+          val mod = filledMod((name, params))
+          Lams(eps)(
+            Apps(
+              Const(mod.elimName, elimLevelParams),
+              params ++ Seq(mod.motive) ++ minorPremises ++ recArgIndices :+ Apps(
+                mutRecArg,
+                eps)))
       }
       ReductionRule(
         Vector() ++ params ++ Seq(
-          motive) ++ minorPremises ++ indices ++ arguments,
+          motive) ++ filledIndMods.map(_.motive) ++ minorPremises ++ indices ++ arguments,
         Apps(
           Const(elimDecl.name, elimLevelParams),
           params ++ Seq(motive) ++ minorPremises ++ indices
@@ -302,6 +316,7 @@ final case class CompiledIndMod(indMod: IndMod, env: PreEnvironment)
 
   case class FilledIndMod(mod: IndMod, params: List[Expr], num: Int) { filled =>
     val indTy = Apps(Const(mod.name, mod.univParams), params)
+    println("Universe parameters: " + indTy.univParams + "for " + indTy + " versus " + comp.indTy.univParams)
 
     val indices =
       ty match {
@@ -330,13 +345,22 @@ final case class CompiledIndMod(indMod: IndMod, env: PreEnvironment)
      * Variable for the motive.
      */
     val motive: LocalConst = LocalConst(
-      Binding("C" + num, motiveType, BinderInfo.Implicit))
+      Binding("C_" + num, motiveType, BinderInfo.Implicit))
+
+    def mkMotiveApp(indices: Seq[Expr], e: Expr): Expr =
+      App(Apps(motive, indices), e)
+
+    val elimName = Name.Str(name, "rec_" + num)
   }
 
   val filledIndMods: Vector[FilledIndMod] = allIntroHeads.zipWithIndex.map {
     case ((indName, indParams), n) =>
       FilledIndMod(env.indMods(indName), indParams, n + 1)
   }
+
+  val filledMod: Map[(Name, List[Expr]), FilledIndMod] = filledIndMods.map { filled =>
+    (filled.mod.name -> filled.params, filled)
+  }.toMap
 
   // filledIndMods.foreach { filled =>
   //   println(s"Filled inductive type ${filled.mod.name}, type ${filled.mod.ty} with params ${filled.params} and indices ${filled.indices}")
@@ -358,7 +382,7 @@ final case class CompiledIndMod(indMod: IndMod, env: PreEnvironment)
    * The elimination rule type.
    */
   val elimType: Expr = Pis(
-    params ++ Seq(motive) ++ minorPremises ++ indices :+ majorPremise)(mkMotiveApp(indices, majorPremise))
+    params ++ Seq(motive) ++ filledIndMods.map(_.motive) ++ minorPremises ++ indices :+ majorPremise)(mkMotiveApp(indices, majorPremise))
   val elimLevelParams: Vector[Param] = extraElimLevelParams ++ univParams
 
   /**
