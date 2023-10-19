@@ -39,18 +39,17 @@ final case class CompiledIndMod(indMod: IndMod, env: PreEnvironment)
    */
   val indTyWParams: Expr = Apps(indTy, params)
 
-  def introHeads(
-    introType: Expr,
-    introParams: List[Expr]): List[(Name, List[Expr])] = {
+  def introHeadsFromType(
+    instantiated: Expr): List[(Const, List[Expr], Vector[Level])] = {
     val NormalizedPis(arguments, _) =
-      NormalizedPis.instantiate(introType, introParams)
+      instantiated
     arguments.flatMap {
       case LocalConst(
         Binding(
           _,
           NormalizedPis(
             eps,
-            head @ Apps(Const(modName, levels), recArgs)
+            head @ Apps(const @ Const(modName, levels), recArgs)
             ),
           _
           ),
@@ -61,35 +60,68 @@ final case class CompiledIndMod(indMod: IndMod, env: PreEnvironment)
           else if (recArgs
             .take(indMod.numParams)
             .exists(arg => arg.constants.contains(name))) {
-            println(s"Found recursive argument in $name, arguments: $arguments, recArgs: $recArgs, headLevels: ${head.univParams}, levels: $levels")
-            Some(indMod.name, recArgs.take(indMod.numParams))
+            println(
+              s"Found recursive argument in $name, arguments: $arguments, recArgs: $recArgs, headLevels: ${head.univParams}, levels: $levels")
+            println(
+              s"Derived from $instantiated with levels ${instantiated.univParams}")
+            Some((const, recArgs.take(indMod.numParams), levels))
           } else None
         }
       case _ => None
     }
   }
 
-  def introHeadsRec(
-    accum: Vector[(Name, List[Expr])],
-    indTypes: Vector[(Name, List[Expr])]): Vector[(Name, List[Expr])] = {
-    val heads = indTypes.flatMap {
-      case (indType, indParams) =>
-        val indMod = env.indMods(indType)
-        val introTypes = indMod.intros.map(_._2)
-        introTypes.flatMap(introType => introHeads(introType, indParams))
-    }
-    val newHeads = heads.filterNot(accum.contains(_)).distinct
-    val newAccum = accum ++ newHeads
-    if (newHeads.isEmpty) accum else introHeadsRec(newAccum, newHeads)
+  def introHeads(
+    introType: Expr,
+    introParams: List[Expr]): List[(Const, List[Expr], Vector[Level])] = {
+    val instantiated = NormalizedPis.instantiate(introType, introParams)
+    introHeadsFromType(instantiated)
   }
 
-  val initIntroHeads = intros.flatMap {
+  def introHeadsRec(
+    accum: Vector[(Const, List[Expr])],
+    indTypes: Vector[(Const, List[Expr])],
+    levels: Vector[Level]): Vector[(Const, List[Expr])] = {
+    val heads = indTypes.flatMap {
+      case (indType, indParams) =>
+        val indMod = env.indMods(indType.name)
+        val baseIntros = indMod.intros.map {
+          case (name, ty) =>
+            Const(name, indMod.univParams)
+        }
+        val intros = indMod.intros.map {
+          case (name, ty) =>
+            Const(name, levels)
+        }
+        // val introTypes = indMod.intros.map(_._2)
+        // introTypes.flatMap(introType => introHeads(introType, indParams))
+        intros.flatMap { intro =>
+          println(intro)
+          val n = tc.whnf(intro)
+          println(n)
+          val typ = tc.infer(n)
+          introHeadsFromType(tc.infer(typ))
+        }
+    }
+    val newHeads = heads.filterNot(accum.contains(_)).distinct.map {
+      case (c, e, _) => (c, e)
+    }
+    val newAccum = accum ++ newHeads
+    if (newHeads.isEmpty) accum else introHeadsRec(newAccum, newHeads, levels)
+  }
+
+  val initIntroHeads: Vector[(Const, List[Expr], Vector[Level])] = intros.flatMap {
     case (name, ty) =>
       introHeads(ty, params)
   }
+
+  val initLevels = initIntroHeads.flatMap(_._3)
   // if (initIntroHeads.nonEmpty)
   //   println(s"Saw intro heads $initIntroHeads in $name")
-  val allIntroHeads = introHeadsRec(initIntroHeads, initIntroHeads)
+  val allIntroHeads = introHeadsRec(
+    initIntroHeads.map(t => (t._1, t._2)),
+    initIntroHeads.map(t => (t._1, t._2)),
+    initLevels)
   // if (allIntroHeads.nonEmpty)
   //   println(s"Found intro heads $allIntroHeads in $name")
 
@@ -132,13 +164,16 @@ final case class CompiledIndMod(indMod: IndMod, env: PreEnvironment)
           ),
         _
         ) =>
-        allIntroHeads.find { case (n, ps) => name == n && recArgs.take(ps.size) == ps }.map {
-          case (n, ps) =>
-            // println(s"Found mutual recursive argument of type $name, parameters: $ps, recArgs: $recArgs")
-            MutRecArg(eps, n, ps, recArgs.drop(ps.size))
-        }.getOrElse {
-          NonRecArg(arg)
-        }
+        allIntroHeads
+          .find { case (n, ps) => name == n && recArgs.take(ps.size) == ps }
+          .map {
+            case (n, ps) =>
+              // println(s"Found mutual recursive argument of type $name, parameters: $ps, recArgs: $recArgs")
+              MutRecArg(eps, n.name, ps, recArgs.drop(ps.size))
+          }
+          .getOrElse {
+            NonRecArg(arg)
+          }
 
       case nonRecArg => NonRecArg(nonRecArg)
     }
@@ -212,13 +247,12 @@ final case class CompiledIndMod(indMod: IndMod, env: PreEnvironment)
           Lams(eps)(
             Apps(
               Const(mod.elimName, elimLevelParams),
-              params ++ Seq(mod.motive) ++ minorPremises ++ recArgIndices :+ Apps(
-                mutRecArg,
-                eps)))
+              params ++ Seq(
+                mod.motive) ++ minorPremises ++ recArgIndices :+ Apps(mutRecArg, eps)))
       }
       ReductionRule(
-        Vector() ++ params ++ Seq(
-          motive) ++ filledIndMods.map(_.motive) ++ minorPremises ++ indices ++ arguments,
+        Vector() ++ params ++ Seq(motive) ++ filledIndMods.map(
+          _.motive) ++ minorPremises ++ indices ++ arguments,
         Apps(
           Const(elimDecl.name, elimLevelParams),
           params ++ Seq(motive) ++ minorPremises ++ indices
@@ -314,9 +348,12 @@ final case class CompiledIndMod(indMod: IndMod, env: PreEnvironment)
   def mkMotiveApp(indices: Seq[Expr], e: Expr): Expr =
     App(Apps(motive, indices), e)
 
-  case class FilledIndMod(mod: IndMod, params: List[Expr], num: Int) { filled =>
-    val indTy = Apps(Const(mod.name, mod.univParams), params)
-    println("Universe parameters: " + indTy.univParams + "for " + indTy + " versus " + comp.indTy.univParams)
+  case class FilledIndMod(const: Const, params: List[Expr], num: Int) {
+    filled =>
+    val mod = env.indMods(const.name)
+    val indTy = Apps(const, params)
+    println(
+      "Universe parameters: " + indTy.univParams + "for " + indTy + " versus " + comp.indTy.univParams)
 
     val indices =
       ty match {
@@ -355,11 +392,12 @@ final case class CompiledIndMod(indMod: IndMod, env: PreEnvironment)
 
   val filledIndMods: Vector[FilledIndMod] = allIntroHeads.zipWithIndex.map {
     case ((indName, indParams), n) =>
-      FilledIndMod(env.indMods(indName), indParams, n + 1)
+      FilledIndMod(indName, indParams, n + 1)
   }
 
-  val filledMod: Map[(Name, List[Expr]), FilledIndMod] = filledIndMods.map { filled =>
-    (filled.mod.name -> filled.params, filled)
+  val filledMod: Map[(Name, List[Expr]), FilledIndMod] = filledIndMods.map {
+    filled =>
+      (filled.mod.name -> filled.params, filled)
   }.toMap
 
   // filledIndMods.foreach { filled =>
@@ -382,7 +420,8 @@ final case class CompiledIndMod(indMod: IndMod, env: PreEnvironment)
    * The elimination rule type.
    */
   val elimType: Expr = Pis(
-    params ++ Seq(motive) ++ filledIndMods.map(_.motive) ++ minorPremises ++ indices :+ majorPremise)(mkMotiveApp(indices, majorPremise))
+    params ++ Seq(motive) ++ filledIndMods.map(
+      _.motive) ++ minorPremises ++ indices :+ majorPremise)(mkMotiveApp(indices, majorPremise))
   val elimLevelParams: Vector[Param] = extraElimLevelParams ++ univParams
 
   /**
@@ -479,7 +518,11 @@ object CompiledIndMod {
     val isNonRec = false
   }
 
-  case class MutRecArg(es: List[LocalConst], modName: Name, params: List[Expr], indices: List[Expr]) extends ArgInfo {
+  case class MutRecArg(
+      es: List[LocalConst],
+      modName: Name,
+      params: List[Expr],
+      indices: List[Expr]) extends ArgInfo {
     val isNonRec = false
   }
 

@@ -321,7 +321,7 @@ class TypeChecker(
         val decl = env.get(name).getOrElse(throw new IllegalArgumentException(s"unknown constant: $name"))
         require(
           decl.univParams.size == levels.size,
-          s"incorrect number of universe parameters: $e, expected ${decl.univParams}")
+          s"incorrect number of universe parameters: $levels, expected ${decl.univParams}")
         decl.ty.instantiate(decl.univParams.zip(levels).toMap)
       case LocalConst(of, _) =>
         of.ty
