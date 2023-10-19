@@ -87,11 +87,11 @@ final case class CompiledIndMod(indMod: IndMod, env: PreEnvironment)
     case (name, ty) =>
       introHeads(ty, params)
   }
-  if (initIntroHeads.nonEmpty)
-    println(s"Saw intro heads $initIntroHeads in $name")
+  // if (initIntroHeads.nonEmpty)
+  //   println(s"Saw intro heads $initIntroHeads in $name")
   val allIntroHeads = introHeadsRec(initIntroHeads, initIntroHeads)
-  if (allIntroHeads.nonEmpty)
-    println(s"Found intro heads $allIntroHeads in $name")
+  // if (allIntroHeads.nonEmpty)
+  //   println(s"Found intro heads $allIntroHeads in $name")
 
   case class CompiledIntro(name: Name, ty: Expr) {
     val NormalizedPis(arguments, Apps(introType, introTyArgs)) =
@@ -121,6 +121,25 @@ final case class CompiledIndMod(indMod: IndMod, env: PreEnvironment)
           Apps(recArgIndTy, recArgs.take(numParams)),
           indTyWParams)
         RecArg(eps, recArgs.drop(numParams))
+      case arg @ LocalConst(
+        Binding(
+          _,
+          NormalizedPis(
+            eps,
+            Apps(Const(name, _), recArgs)
+            ),
+          _
+          ),
+        _
+        ) =>
+        allIntroHeads.find { case (n, ps) => name == n && recArgs.take(ps.size) == ps }.map {
+          case (n, ps) =>
+            // println(s"Found mutual recursive argument of type $name, parameters: $ps, recArgs: $recArgs")
+            MutRecArg(eps, n, ps, recArgs.drop(ps.size))
+        }.getOrElse {
+          NonRecArg(arg)
+        }
+
       case nonRecArg => NonRecArg(nonRecArg)
     }
 
@@ -211,6 +230,8 @@ final case class CompiledIndMod(indMod: IndMod, env: PreEnvironment)
               throw t
           }
         case (_, RecArg(eps, _)) =>
+          for (e <- eps) tc0.inferUniverseOfType(tc0.infer(e))
+        case (_, MutRecArg(eps, _, _, _)) =>
           for (e <- eps) tc0.inferUniverseOfType(tc0.infer(e))
       }
 
@@ -317,12 +338,11 @@ final case class CompiledIndMod(indMod: IndMod, env: PreEnvironment)
       FilledIndMod(env.indMods(indName), indParams, n + 1)
   }
 
-  filledIndMods.foreach { filled =>
-    println(s"Filled inductive type ${filled.mod.name}, type ${filled.mod.ty} with params ${filled.params} and indices ${filled.indices}")
-    println(s"Obtained instantiated type ${filled.indTy}")
-    println(s"Obtained motive type ${filled.motiveType} (compare with $motiveType)")
-
-  }
+  // filledIndMods.foreach { filled =>
+  //   println(s"Filled inductive type ${filled.mod.name}, type ${filled.mod.ty} with params ${filled.params} and indices ${filled.indices}")
+  //   println(s"Obtained instantiated type ${filled.indTy}")
+  //   println(s"Obtained motive type ${filled.motiveType} (compare with $motiveType)")
+  // }
   /**
    * The minor premises for the introduction rules.
    */
@@ -431,11 +451,11 @@ object CompiledIndMod {
   case class NonRecArg(expr: Expr) extends ArgInfo {
     val isNonRec = true
   }
-  case class RecArg(es: List[LocalConst], params: List[Expr]) extends ArgInfo {
+  case class RecArg(es: List[LocalConst], indices: List[Expr]) extends ArgInfo {
     val isNonRec = false
   }
 
-  case class MutRecArg(es: List[LocalConst], modName: Name, params: List[Expr]){
+  case class MutRecArg(es: List[LocalConst], modName: Name, params: List[Expr], indices: List[Expr]) extends ArgInfo {
     val isNonRec = false
   }
 
