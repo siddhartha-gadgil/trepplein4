@@ -60,8 +60,8 @@ final case class CompiledIndMod(indMod: IndMod, env: PreEnvironment)
           else if (recArgs
             .take(indMod.numParams)
             .exists(arg => arg.constants.contains(name))) {
-            println(s"Found recursive argument in $name, arguments: $arguments, recArgs: $recArgs, headLevels: ${head.univParams}, levels: $levels")
-            println(s"Derived from $instantiated with levels ${instantiated.univParams}")
+            // println(s"Found recursive argument in $name, arguments: $arguments, recArgs: $recArgs, headLevels: ${head.univParams}, levels: $levels")
+            // println(s"Derived from $instantiated with levels ${instantiated.univParams}")
             Some(const -> recArgs.take(indMod.numParams))
           } else None
         }
@@ -90,11 +90,11 @@ final case class CompiledIndMod(indMod: IndMod, env: PreEnvironment)
         // val introTypes = indMod.intros.map(_._2)
         // introTypes.flatMap(introType => introHeads(introType, indParams))
         intros.flatMap { intro =>
-          println(intro)
+          // println(intro)
           val folded = Apps(intro, indParams)
-          println(folded)
+          // println(folded)
           val typ = tc.infer(folded)
-          println(typ)
+          // println(typ)
           introHeadsFromType(typ)
         }
     }
@@ -110,59 +110,108 @@ final case class CompiledIndMod(indMod: IndMod, env: PreEnvironment)
   // if (initIntroHeads.nonEmpty)
   //   println(s"Saw intro heads $initIntroHeads in $name")
   val allIntroHeads = introHeadsRec(initIntroHeads, initIntroHeads)
-  if (allIntroHeads.nonEmpty)
+  val mutRec = initIntroHeads.nonEmpty
+  if (mutRec)
     println(s"Found intro heads $allIntroHeads in $name")
+
+  def getArgInfo: LocalConst => ArgInfo = {
+    case LocalConst(
+      Binding(
+        _,
+        NormalizedPis(
+          eps,
+          Apps(recArgIndTy @ Const(indMod.name, _), recArgs)
+          ),
+        _
+        ),
+      _
+      ) =>
+      require(recArgs.size >= numParams, "too few recursive arguments")
+      tc.requireDefEq(
+        Apps(recArgIndTy, recArgs.take(numParams)),
+        indTyWParams)
+      RecArg(eps, recArgs.drop(numParams))
+    case arg @ LocalConst(
+      Binding(
+        _,
+        NormalizedPis(
+          eps,
+          Apps(Const(name, _), recArgs)
+          ),
+        _
+        ),
+      _
+      ) =>
+      allIntroHeads.find { case (n, ps) => name == n.name && recArgs.take(ps.size) == ps }.map {
+        case (n, ps) =>
+          println(s"Found mutual recursive argument of type $name, parameters: $ps, recArgs: $recArgs")
+          MutRecArg(eps, n.name, ps, recArgs.drop(ps.size))
+      }.getOrElse {
+        NonRecArg(arg)
+      }
+
+    case nonRecArg => NonRecArg(nonRecArg)
+  }
+
+  def getIhs(arguments: List[LocalConst], argInfos: List[ArgInfo]) = arguments
+    .lazyZip(argInfos)
+    .collect {
+      case (recArg, RecArg(eps, recIndices)) =>
+        LocalConst(
+          Binding(
+            "ih",
+            Pis(eps)(mkMotiveApp(recIndices, Apps(recArg, eps))),
+            BinderInfo.Default))
+      case (mutRecArg, MutRecArg(eps, name, params, recIndices)) =>
+        LocalConst(
+          Binding(
+            "ih",
+            Pis(eps)(filledMod((name, params)).mkMotiveApp(recIndices, Apps(mutRecArg, eps))),
+            BinderInfo.Default))
+    }
+    .toList
+
+  def getRedRule(arguments: List[LocalConst], argInfos: List[ArgInfo], minorPremise: LocalConst, name: Name): ReductionRule = {
+    val recCalls = arguments.zip(argInfos).collect {
+      case (recArg, RecArg(eps, recArgIndices)) =>
+        Lams(eps)(
+          Apps(
+            Const(elimDecl.name, elimLevelParams),
+            params ++ Seq(motive) ++ minorPremises ++ recArgIndices :+ Apps(
+              recArg,
+              eps)))
+      case (mutRecArg, MutRecArg(eps, name, params, recArgIndices)) =>
+        val mod = filledMod((name, params))
+        Lams(eps)(
+          Apps(
+            Const(mod.elimName, elimLevelParams),
+            params ++ Seq(mod.motive) ++ minorPremises ++ recArgIndices :+ Apps(
+              mutRecArg,
+              eps)))
+    }
+    ReductionRule(
+      Vector() ++ params ++ Seq(
+        motive) ++ filledIndMods.map(_.motive) ++ minorPremises ++ indices ++ arguments,
+      Apps(
+        Const(elimDecl.name, elimLevelParams),
+        params ++ Seq(motive) ++ minorPremises ++ indices
+          :+ Apps(Const(name, univParams), params ++ arguments)),
+      Apps(minorPremise, arguments ++ recCalls),
+      List())
+  }
+
+  import CompiledIndMod.ArgInfo
 
   case class CompiledIntro(name: Name, ty: Expr) {
     val NormalizedPis(arguments, Apps(introType, introTyArgs)) =
       NormalizedPis.instantiate(ty, params)
     val introTyIndices: List[Expr] = introTyArgs.drop(numParams)
 
-    import CompiledIndMod.ArgInfo
-
     /**
      * Arguments separated into those that are recursive and those that are
      * not.
      */
-    val argInfos: List[ArgInfo] = arguments.map {
-      case LocalConst(
-        Binding(
-          _,
-          NormalizedPis(
-            eps,
-            Apps(recArgIndTy @ Const(indMod.name, _), recArgs)
-            ),
-          _
-          ),
-        _
-        ) =>
-        require(recArgs.size >= numParams, "too few recursive arguments")
-        tc.requireDefEq(
-          Apps(recArgIndTy, recArgs.take(numParams)),
-          indTyWParams)
-        RecArg(eps, recArgs.drop(numParams))
-      case arg @ LocalConst(
-        Binding(
-          _,
-          NormalizedPis(
-            eps,
-            Apps(Const(name, _), recArgs)
-            ),
-          _
-          ),
-        _
-        ) =>
-        allIntroHeads.find { case (n, ps) => name == n.name && recArgs.take(ps.size) == ps }.map {
-          case (n, ps) =>
-            println(s"Found mutual recursive argument of type $name, parameters: $ps, recArgs: $recArgs")
-            MutRecArg(eps, n.name, ps, recArgs.drop(ps.size))
-        }.getOrElse {
-          NonRecArg(arg)
-        }
-
-      case nonRecArg => NonRecArg(nonRecArg)
-    }
-
+    val argInfos: List[ArgInfo] = arguments.map(getArgInfo)
     /**
      * Whether all arguments are non-recursive.
      */
@@ -175,23 +224,7 @@ final case class CompiledIndMod(indMod: IndMod, env: PreEnvironment)
      *   A list of variables corresponding to recursive arguments, in the same
      *   order as the recursive arguments.
      */
-    lazy val ihs: List[LocalConst] = arguments
-      .lazyZip(argInfos)
-      .collect {
-        case (recArg, RecArg(eps, recIndices)) =>
-          LocalConst(
-            Binding(
-              "ih",
-              Pis(eps)(mkMotiveApp(recIndices, Apps(recArg, eps))),
-              BinderInfo.Default))
-        // case (mutRecArg, MutRecArg(eps, name, params, recIndices)) =>
-        //   LocalConst(
-        //     Binding(
-        //       "ih",
-        //       Pis(eps)(filledMod((name, params)).mkMotiveApp(recIndices, Apps(mutRecArg, eps))),
-        //       BinderInfo.Default))
-      }
-      .toList
+    lazy val ihs: List[LocalConst] = getIhs(arguments, argInfos)
 
     /**
      * Minor premise for the introduction rule, i.e., the data that defines the
@@ -209,8 +242,6 @@ final case class CompiledIndMod(indMod: IndMod, env: PreEnvironment)
             Apps(Const(name, univParams), params ++ arguments))),
         BinderInfo.Default))
 
-    lazy val elems = Apps(Const(name, univParams), params ++ arguments)
-
     /**
      * Reduction rule for the introduction rule. The value of the function is
      * defined by the minor premise.
@@ -218,34 +249,7 @@ final case class CompiledIndMod(indMod: IndMod, env: PreEnvironment)
      * @return
      *   Reduction rule for the introduction rule.
      */
-    lazy val redRule: ReductionRule = {
-      val recCalls = arguments.zip(argInfos).collect {
-        case (recArg, RecArg(eps, recArgIndices)) =>
-          Lams(eps)(
-            Apps(
-              Const(elimDecl.name, elimLevelParams),
-              params ++ Seq(motive) ++ minorPremises ++ recArgIndices :+ Apps(
-                recArg,
-                eps)))
-        case (mutRecArg, MutRecArg(eps, name, params, recArgIndices)) =>
-          val mod = filledMod((name, params))
-          Lams(eps)(
-            Apps(
-              Const(mod.elimName, elimLevelParams),
-              params ++ Seq(mod.motive) ++ minorPremises ++ recArgIndices :+ Apps(
-                mutRecArg,
-                eps)))
-      }
-      ReductionRule(
-        Vector() ++ params ++ Seq(
-          motive) ++ filledIndMods.map(_.motive) ++ minorPremises ++ indices ++ arguments,
-        Apps(
-          Const(elimDecl.name, elimLevelParams),
-          params ++ Seq(motive) ++ minorPremises ++ indices
-            :+ Apps(Const(name, univParams), params ++ arguments)),
-        Apps(minorPremise, arguments ++ recCalls),
-        List())
-    }
+    lazy val redRule: ReductionRule = getRedRule(arguments, argInfos, minorPremise, name)
 
     def check(): Unit = {
       require(introTyArgs.size >= numParams)
@@ -477,6 +481,8 @@ final case class CompiledIndMod(indMod: IndMod, env: PreEnvironment)
       kIntroRule.toVector
     else
       compiledIntros.map(_.redRule) ++ structRules
+  // if (mutRec)
+  //   println(s"Found rules $rules in $name")
 
   def check(): Unit = {
     val withType: PreEnvironment = env.addNow(decl)
