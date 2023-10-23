@@ -82,19 +82,13 @@ final case class CompiledIndMod(indMod: IndMod, env: PreEnvironment)
     val heads = indTypes.flatMap {
       case (indType, indParams) =>
         val indMod = env.indMods(indType.name)
-        val baseIntros = indMod.intros.map { case (name, ty) => Const(name, indMod.univParams) }
         val intros = indMod.intros.map {
           case (name, ty) =>
             Const(name, indType.levels)
         }
-        // val introTypes = indMod.intros.map(_._2)
-        // introTypes.flatMap(introType => introHeads(introType, indParams))
         intros.flatMap { intro =>
-          // println(intro)
           val folded = Apps(intro, indParams)
-          // println(folded)
           val typ = tc.infer(folded)
-          // println(typ)
           introHeadsFromType(typ)
         }
     }
@@ -343,6 +337,11 @@ final case class CompiledIndMod(indMod: IndMod, env: PreEnvironment)
     val indTy = Apps(const, params)
     // println("Universe parameters: " + indTy.univParams + "for " + indTy + " versus " + comp.indTy.univParams)
 
+    val intros = mod.intros.map {
+      case (name, ty) =>
+        Apps(Const(name, const.levels), params)
+    }
+
     val indices =
       ty match {
         case NormalizedPis(indices: List[LocalConst], Sort(lvl: Level)) =>
@@ -352,11 +351,9 @@ final case class CompiledIndMod(indMod: IndMod, env: PreEnvironment)
             s"Type $ty did not match as a NormalizedPis even with empty doms")
       }
 
-    val introNamedTys: Vector[(Name, Expr)] = mod.intros.map {
-      case (name, ty) => (name, NormalizedPis.instantiate(ty, params))
-    }
-
-    val introTyps = introNamedTys.map(_._2)
+    println(intros.mkString("\n"))
+    val introTyps = intros.map(tc.infer(_))
+    println(introTyps.mkString("\n"))
 
     /**
      * The motive type for the elimination type.
