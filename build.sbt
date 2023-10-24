@@ -22,3 +22,14 @@ import scalariform.formatter.preferences._
 import com.typesafe.sbt.SbtScalariform.ScalariformKeys
 ScalariformKeys.preferences := ScalariformKeys.preferences.value
   .setPreference(DoubleIndentConstructorArguments, true)
+
+
+libraryDependencies += {
+  "com.lihaoyi" % "ammonite" % "2.5.11" % "test" cross CrossVersion.full
+}
+
+sourceGenerators in Test += Def.task {
+  val file = (sourceManaged in Test).value / "amm.scala"
+  IO.write(file, """object amm extends App { ammonite.AmmoniteMain.main(args) }""")
+  Seq(file)
+}.taskValue
