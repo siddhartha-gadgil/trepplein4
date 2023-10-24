@@ -326,7 +326,7 @@ final case class CompiledIndMod(indMod: IndMod, env: PreEnvironment)
    * Variable for the motive.
    */
   val motive: LocalConst = LocalConst(
-    Binding("C", motiveType, BinderInfo.Implicit))
+    Binding("motive", motiveType, BinderInfo.Implicit))
 
   /**
    * The motive expression for the elimination type.
@@ -377,7 +377,7 @@ final case class CompiledIndMod(indMod: IndMod, env: PreEnvironment)
      * Variable for the motive.
      */
     val motive: LocalConst = LocalConst(
-      Binding("C_" + num, motiveType, BinderInfo.Implicit))
+      Binding("motive_" + num, motiveType, BinderInfo.Implicit))
 
     def mkMotiveApp(indices: Seq[Expr], e: Expr): Expr =
       App(Apps(motive, indices), e)
@@ -402,9 +402,14 @@ final case class CompiledIndMod(indMod: IndMod, env: PreEnvironment)
               introTyIndices,
               Apps(Const(name, const.levels), params ++ arguments))),
           BinderInfo.Default))
+
+      lazy val redRule: ReductionRule =
+        getRedRule(arguments, argInfos, minorPremise, name)
     }
 
-    val mutCompiledIntros: Vector[MutCompiledIntro] = mod.intros.map { case (name, _) => MutCompiledIntro(name) }
+    val mutCompiledIntros: Vector[MutCompiledIntro] = mod.intros.map {
+      case (name, _) => MutCompiledIntro(name)
+    }
   }
 
   val filledIndMods: Vector[FilledIndMod] = allIntroHeads.zipWithIndex.map {
@@ -429,7 +434,9 @@ final case class CompiledIndMod(indMod: IndMod, env: PreEnvironment)
   /**
    * The minor premises for the introduction rules.
    */
-  val minorPremises: Vector[LocalConst] = compiledIntros.map { _.minorPremise } ++ allMutCompiledIntros.map { _.minorPremise }
+  val minorPremises: Vector[LocalConst] = compiledIntros.map {
+    _.minorPremise
+  } ++ allMutCompiledIntros.map { _.minorPremise }
 
   /**
    * The major premise, i.e., a variable for an element of the inductive type.
@@ -516,8 +523,8 @@ final case class CompiledIndMod(indMod: IndMod, env: PreEnvironment)
       kIntroRule.toVector
     else
       compiledIntros.map(_.redRule) ++ structRules
-  // if (mutRec)
-  //   println(s"Found rules $rules in $name")
+  if (mutRec)
+    println(s"Recursion type: $elimType")
 
   def check(): Unit = {
     val withType: PreEnvironment = env.addNow(decl)
