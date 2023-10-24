@@ -39,8 +39,7 @@ final case class CompiledIndMod(indMod: IndMod, env: PreEnvironment)
    */
   val indTyWParams: Expr = Apps(indTy, params)
 
-  def introHeadsFromType(
-    instantiated: Expr): List[(Const, List[Expr])] = {
+  def introHeadsFromType(instantiated: Expr): List[(Const, List[Expr])] = {
     val NormalizedPis(arguments, _) =
       instantiated
     arguments.flatMap {
@@ -121,9 +120,7 @@ final case class CompiledIndMod(indMod: IndMod, env: PreEnvironment)
       _
       ) =>
       require(recArgs.size >= numParams, "too few recursive arguments")
-      tc.requireDefEq(
-        Apps(recArgIndTy, recArgs.take(numParams)),
-        indTyWParams)
+      tc.requireDefEq(Apps(recArgIndTy, recArgs.take(numParams)), indTyWParams)
       RecArg(eps, recArgs.drop(numParams))
     case arg @ LocalConst(
       Binding(
@@ -136,13 +133,17 @@ final case class CompiledIndMod(indMod: IndMod, env: PreEnvironment)
         ),
       _
       ) =>
-      allIntroHeads.find { case (n, ps) => name == n.name && recArgs.take(ps.size) == ps }.map {
-        case (n, ps) =>
-          println(s"Found mutual recursive argument of type $name, parameters: $ps, recArgs: $recArgs")
-          MutRecArg(eps, n.name, ps, recArgs.drop(ps.size))
-      }.getOrElse {
-        NonRecArg(arg)
-      }
+      allIntroHeads
+        .find { case (n, ps) => name == n.name && recArgs.take(ps.size) == ps }
+        .map {
+          case (n, ps) =>
+            println(
+              s"Found mutual recursive argument of type $name, parameters: $ps, recArgs: $recArgs")
+            MutRecArg(eps, n.name, ps, recArgs.drop(ps.size))
+        }
+        .getOrElse {
+          NonRecArg(arg)
+        }
 
     case nonRecArg => NonRecArg(nonRecArg)
   }
@@ -160,12 +161,18 @@ final case class CompiledIndMod(indMod: IndMod, env: PreEnvironment)
         LocalConst(
           Binding(
             "ih",
-            Pis(eps)(filledMod((name, params)).mkMotiveApp(recIndices, Apps(mutRecArg, eps))),
+            Pis(eps)(
+              filledMod((name, params))
+                .mkMotiveApp(recIndices, Apps(mutRecArg, eps))),
             BinderInfo.Default))
     }
     .toList
 
-  def getRedRule(arguments: List[LocalConst], argInfos: List[ArgInfo], minorPremise: LocalConst, name: Name): ReductionRule = {
+  def getRedRule(
+    arguments: List[LocalConst],
+    argInfos: List[ArgInfo],
+    minorPremise: LocalConst,
+    name: Name): ReductionRule = {
     val recCalls = arguments.zip(argInfos).collect {
       case (recArg, RecArg(eps, recArgIndices)) =>
         Lams(eps)(
@@ -184,8 +191,8 @@ final case class CompiledIndMod(indMod: IndMod, env: PreEnvironment)
               eps)))
     }
     ReductionRule(
-      Vector() ++ params ++ Seq(
-        motive) ++ filledIndMods.map(_.motive) ++ minorPremises ++ indices ++ arguments,
+      Vector() ++ params ++ Seq(motive) ++ filledIndMods.map(
+        _.motive) ++ minorPremises ++ indices ++ arguments,
       Apps(
         Const(elimDecl.name, elimLevelParams),
         params ++ Seq(motive) ++ minorPremises ++ indices
@@ -206,6 +213,7 @@ final case class CompiledIndMod(indMod: IndMod, env: PreEnvironment)
      * not.
      */
     val argInfos: List[ArgInfo] = arguments.map(getArgInfo)
+
     /**
      * Whether all arguments are non-recursive.
      */
@@ -243,7 +251,8 @@ final case class CompiledIndMod(indMod: IndMod, env: PreEnvironment)
      * @return
      *   Reduction rule for the introduction rule.
      */
-    lazy val redRule: ReductionRule = getRedRule(arguments, argInfos, minorPremise, name)
+    lazy val redRule: ReductionRule =
+      getRedRule(arguments, argInfos, minorPremise, name)
 
     def check(): Unit = {
       require(introTyArgs.size >= numParams)
@@ -332,13 +341,14 @@ final case class CompiledIndMod(indMod: IndMod, env: PreEnvironment)
   def mkMotiveApp(indices: Seq[Expr], e: Expr): Expr =
     App(Apps(motive, indices), e)
 
-  case class FilledIndMod(const: Const, params: List[Expr], num: Int) { filled =>
+  case class FilledIndMod(const: Const, params: List[Expr], num: Int) {
+    filled =>
     val mod = env.indMods(const.name)
     val indTy = Apps(const, params)
     // println("Universe parameters: " + indTy.univParams + "for " + indTy + " versus " + comp.indTy.univParams)
 
     val intros = mod.intros.map {
-      case (name, ty) =>
+      case (name, _) =>
         Apps(Const(name, const.levels), params)
     }
 
@@ -373,6 +383,28 @@ final case class CompiledIndMod(indMod: IndMod, env: PreEnvironment)
       App(Apps(motive, indices), e)
 
     val elimName = Name.Str(name, "rec_" + num)
+
+    case class MutCompiledIntro(name: Name) {
+      val intro = Apps(Const(name, const.levels), params)
+      val ty = tc.infer(intro)
+      val NormalizedPis(arguments, Apps(introType, introTyArgs)) = ty
+      val introTyIndices: List[Expr] = introTyArgs.drop(params.size)
+
+      val argInfos: List[ArgInfo] = arguments.map(getArgInfo)
+
+      lazy val ihs: List[LocalConst] = getIhs(arguments, argInfos)
+
+      lazy val minorPremise = LocalConst(
+        Binding(
+          "h",
+          Pis(arguments ++ ihs)(
+            mkMotiveApp(
+              introTyIndices,
+              Apps(Const(name, const.levels), params ++ arguments))),
+          BinderInfo.Default))
+    }
+
+    val mutCompiledIntros: Vector[MutCompiledIntro] = mod.intros.map { case (name, _) => MutCompiledIntro(name) }
   }
 
   val filledIndMods: Vector[FilledIndMod] = allIntroHeads.zipWithIndex.map {
@@ -380,9 +412,14 @@ final case class CompiledIndMod(indMod: IndMod, env: PreEnvironment)
       FilledIndMod(indName, indParams, n + 1)
   }
 
-  val filledMod: Map[(Name, List[Expr]), FilledIndMod] = filledIndMods.map { filled =>
-    (filled.mod.name -> filled.params, filled)
+  val filledMod: Map[(Name, List[Expr]), FilledIndMod] = filledIndMods.map {
+    filled =>
+      (filled.mod.name -> filled.params, filled)
   }.toMap
+
+  val allMutCompiledIntros = filledIndMods.flatMap { filled =>
+    filled.mutCompiledIntros
+  }
 
   // filledIndMods.foreach { filled =>
   //   println(s"Filled inductive type ${filled.mod.name}, type ${filled.mod.ty} with params ${filled.params} and indices ${filled.indices}")
@@ -392,7 +429,7 @@ final case class CompiledIndMod(indMod: IndMod, env: PreEnvironment)
   /**
    * The minor premises for the introduction rules.
    */
-  val minorPremises: Vector[LocalConst] = compiledIntros.map { _.minorPremise }
+  val minorPremises: Vector[LocalConst] = compiledIntros.map { _.minorPremise } ++ allMutCompiledIntros.map { _.minorPremise }
 
   /**
    * The major premise, i.e., a variable for an element of the inductive type.
@@ -404,7 +441,8 @@ final case class CompiledIndMod(indMod: IndMod, env: PreEnvironment)
    * The elimination rule type.
    */
   val elimType: Expr = Pis(
-    params ++ Seq(motive) ++ filledIndMods.map(_.motive) ++ minorPremises ++ indices :+ majorPremise)(mkMotiveApp(indices, majorPremise))
+    params ++ Seq(motive) ++ filledIndMods.map(
+      _.motive) ++ minorPremises ++ indices :+ majorPremise)(mkMotiveApp(indices, majorPremise))
   val elimLevelParams: Vector[Param] = extraElimLevelParams ++ univParams
 
   /**
@@ -503,7 +541,11 @@ object CompiledIndMod {
     val isNonRec = false
   }
 
-  case class MutRecArg(es: List[LocalConst], modName: Name, params: List[Expr], indices: List[Expr]) extends ArgInfo {
+  case class MutRecArg(
+      es: List[LocalConst],
+      modName: Name,
+      params: List[Expr],
+      indices: List[Expr]) extends ArgInfo {
     val isNonRec = false
   }
 
