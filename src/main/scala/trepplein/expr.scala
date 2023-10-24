@@ -431,6 +431,20 @@ object Expr {
     case NatLit(n) => List()
     case StringLit(s) => List()
   }
+  
+  def natLits(exp: Expr) : List[NatLit] = exp match {
+    case Var(idx) => List()
+    case Sort(level) => List()
+    case Const(name, levels) => List()
+    case lc @ LocalConst(of, name) => List()
+    case App(a, b) => natLits(a) ++ natLits(b)
+    case Lam(domain, body) => natLits(domain.ty) ++ natLits(body)
+    case Pi(domain, body) => natLits(domain.ty) ++ natLits(body)
+    case Let(domain, value, body) => natLits(domain.ty) ++ natLits(value) ++ natLits(body)
+    case Proj(typeName, idx, struct) => natLits(struct)
+    case n @ NatLit(_) => List(n)
+    case StringLit(s) => List()
+  }
 }
 
 /**

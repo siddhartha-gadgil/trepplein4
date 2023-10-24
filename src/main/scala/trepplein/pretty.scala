@@ -279,7 +279,7 @@ class PrettyPrinter(
             }
           case (fn, as) => printDefault(fn, as)
         }
-      case NatLit(n) => Parenable(MaxPrio, s"n")
+      case NatLit(n) => Parenable(MaxPrio, s"$n")
       case StringLit(s) => Parenable(MaxPrio, s""""$s"""")
     }
 

@@ -1,21 +1,20 @@
-import trepplein._, Name._
-
-// Checking whether anonymous names are equal
-Name.Anon == Name.Anon
-
-Name.Anon eq Name.Anon
+import trepplein._, Name._, scala.util._
 
 val exportedCommands = TextExportParser.parseFile("/home/gadgil/Downloads/Init.export")
 val modifications = exportedCommands.collect { case ExportedModification(mod) => mod }
 val env0 = Environment.default
 
-val preEnv = modifications.take(372).foldLeft[PreEnvironment](env0)(_.addNow(_))
-val breaker = modifications(372).asInstanceOf[DefMod]
-breaker.name
-val breakerConsts = modifications(372).asInstanceOf[DefMod].value.constants
-val defNames = modifications.take(372).collect { case d : DefMod => d.name }
-defNames.contains(Name.ofString("Lean.TSyntaxArray.raw"))
-import scala.util._
-val errCase = Try(preEnv.addNow(modifications(372).asInstanceOf[DefMod]))
-val axiomNames = modifications.take(372).collect { case d : AxiomMod => d.name }
-axiomNames.contains(Name.ofString("Lean.TSyntaxArray.raw"))
+@annotation.tailrec
+final def tillError(env: PreEnvironment, mods: LazyList[Modification]): (PreEnvironment, LazyList[Modification]) = mods match {
+  case head #:: tail => Try(env.addNow(head)) match {
+    case Success(env1) => tillError(env1, tail)
+    case Failure(_) => (env, mods)
+  }
+  case LazyList() => (env, LazyList())
+  }
+
+val (preEnv, tailMods) = tillError(env0, modifications) 
+val errorCase = tailMods.head.asInstanceOf[DefMod]
+errorCase.name.toString
+errorCase.value.toString()
+Expr.natLits(errorCase.value)
