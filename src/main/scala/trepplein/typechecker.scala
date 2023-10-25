@@ -244,7 +244,7 @@ class TypeChecker(
             whnfCore(Apps(x, as))
           case _ => e
         }
-      case NatLit(n) =>
+      case NatLit(n) if n < 100 =>
         NatLit.expand(n)
       case _ =>
         reduceOneStep(fn, as) match {

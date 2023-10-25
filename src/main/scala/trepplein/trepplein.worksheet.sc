@@ -17,7 +17,6 @@ val (preEnv, tailMods) = tillError(env0, modifications)
 val errorCase = tailMods.head.asInstanceOf[DefMod]
 errorCase.name.toString
 errorCase.value.toString()
-Expr.natLits(errorCase.value)
 errorCase.ty.toString
 val tc = new TypeChecker(preEnv)
 tc.whnf(errorCase.ty).toString

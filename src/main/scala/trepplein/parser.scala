@@ -209,7 +209,7 @@ private final class LinesParser(
           case 'N' =>
             skip()
             val n = spc(long())
-            println(s"NatLit($n)")
+            // println(s"NatLit($n)")
             NatLit(n)
           case 'S' =>
             skip()

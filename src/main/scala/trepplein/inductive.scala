@@ -104,8 +104,8 @@ final case class CompiledIndMod(indMod: IndMod, env: PreEnvironment)
   //   println(s"Saw intro heads $initIntroHeads in $name")
   val allIntroHeads = introHeadsRec(initIntroHeads, initIntroHeads)
   val mutRec = initIntroHeads.nonEmpty
-  if (mutRec)
-    println(s"Found intro heads $allIntroHeads in $name")
+  // if (mutRec)
+  //   println(s"Found intro heads $allIntroHeads in $name")
 
   def getArgInfo: LocalConst => ArgInfo = {
     case LocalConst(
@@ -137,8 +137,8 @@ final case class CompiledIndMod(indMod: IndMod, env: PreEnvironment)
         .find { case (n, ps) => name == n.name && recArgs.take(ps.size) == ps }
         .map {
           case (n, ps) =>
-            println(
-              s"Found mutual recursive argument of type $name, parameters: $ps, recArgs: $recArgs")
+            // println(
+            //   s"Found mutual recursive argument of type $name, parameters: $ps, recArgs: $recArgs")
             MutRecArg(eps, n.name, ps, recArgs.drop(ps.size))
         }
         .getOrElse {
@@ -361,9 +361,9 @@ final case class CompiledIndMod(indMod: IndMod, env: PreEnvironment)
             s"Type $ty did not match as a NormalizedPis even with empty doms")
       }
 
-    println(intros.mkString("\n"))
+    // println(intros.mkString("\n"))
     val introTyps = intros.map(tc.infer(_))
-    println(introTyps.mkString("\n"))
+    // println(introTyps.mkString("\n"))
 
     /**
      * The motive type for the elimination type.
@@ -523,8 +523,8 @@ final case class CompiledIndMod(indMod: IndMod, env: PreEnvironment)
       kIntroRule.toVector
     else
       compiledIntros.map(_.redRule) ++ structRules
-  if (mutRec)
-    println(s"Recursion type: $elimType")
+  // if (mutRec)
+  //   println(s"Recursion type: $elimType")
 
   def check(): Unit = {
     val withType: PreEnvironment = env.addNow(decl)
