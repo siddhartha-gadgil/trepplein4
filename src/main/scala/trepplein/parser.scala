@@ -208,7 +208,8 @@ private final class LinesParser(
         cur() match {
           case 'N' =>
             skip()
-            val n = spc(num())
+            val n = spc(long())
+            println(s"NatLit($n)")
             NatLit(n)
           case 'S' =>
             skip()

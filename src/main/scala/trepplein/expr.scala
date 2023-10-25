@@ -431,8 +431,8 @@ object Expr {
     case NatLit(n) => List()
     case StringLit(s) => List()
   }
-  
-  def natLits(exp: Expr) : List[NatLit] = exp match {
+
+  def natLits(exp: Expr): List[NatLit] = exp match {
     case Var(idx) => List()
     case Sort(level) => List()
     case Const(name, levels) => List()
@@ -552,13 +552,13 @@ case class Proj(typeName: Name, idx: Int, struct: Expr) extends Expr(
   hasLocals = struct.hasLocals,
   hashCode = 5 + 37 * (typeName.hashCode + 37 * idx) + struct.hashCode)
 
-case class NatLit(n: Int) extends Expr(
+case class NatLit(n: Long) extends Expr(
   varBound = 0,
   hasLocals = false,
-  hashCode = 6 + 37 * n)
+  hashCode = 6 + 37 * n.toInt)
 
 object NatLit {
-  def expand(n: Int): Expr = {
+  def expand(n: Long): Expr = {
     if (n == 0) {
       Const(Name("Nat", "zero"), Vector())
     } else {

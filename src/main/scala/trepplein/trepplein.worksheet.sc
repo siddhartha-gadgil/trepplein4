@@ -18,3 +18,12 @@ val errorCase = tailMods.head.asInstanceOf[DefMod]
 errorCase.name.toString
 errorCase.value.toString()
 Expr.natLits(errorCase.value)
+errorCase.ty.toString
+val tc = new TypeChecker(preEnv)
+tc.whnf(errorCase.ty).toString
+tc.whnf(errorCase.value).toString
+preEnv.get(Name.ofString("UInt32.size")).get
+errorCase.ty
+val unint32sizeDecl = preEnv.get(Name.ofString("UInt32.size")).get
+val uint32size = Const(Name.ofString("UInt32.size"), Vector())
+tc.reduceOneStep(uint32size)(tc.Transparency(true)).toString
