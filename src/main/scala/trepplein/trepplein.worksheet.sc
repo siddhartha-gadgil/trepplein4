@@ -27,67 +27,31 @@ val unint32sizeDecl = preEnv.get(Name.ofString("UInt32.size")).get
 val uint32size = Const(Name.ofString("UInt32.size"), Vector())
 tc.reduceOneStep(uint32size)(tc.Transparency(true)).toString
 print(tc.whnf(errorCase.value).toString)
-// @Decidable.rec.{0}
-//   (@LT.lt.{0} @Nat @instLTNat (@OfNat.ofNat.{0} @Nat 127 (@instOfNatNat 127))
-//     @UInt32.size)
-//   (fun (x :
-//       @Decidable
-//         (@LT.lt.{0} @Nat @instLTNat
-//           (@OfNat.ofNat.{0} @Nat 127 (@instOfNatNat 127))
-//           @UInt32.size)) ↦ (fun (inst_InitPrelude_hyg1444 :
-//         @Decidable
-//           (@LT.lt.{0} @Nat @instLTNat
-//             (@OfNat.ofNat.{0} @Nat 127 (@instOfNatNat 127))
-//             @UInt32.size)) ↦ @LT.lt.{0} @Nat @instLTNat
-//       (@OfNat.ofNat.{0} @Nat 127 (@instOfNatNat 127)) @UInt32.size) x)
-//   (fun (h :
-//       @Not
-//         (@LT.lt.{0} @Nat @instLTNat
-//           (@OfNat.ofNat.{0} @Nat 127 (@instOfNatNat 127))
-//           @UInt32.size)) ↦ (fun (h_InitPrelude_hyg1465 :
-//         @Not
-//           (@LT.lt.{0} @Nat @instLTNat
-//             (@OfNat.ofNat.{0} @Nat 127 (@instOfNatNat 127))
-//             @UInt32.size)) ↦ (fun (h_0 :
-//           @Not
-//             (@LT.lt.{0} @Nat @instLTNat
-//               (@OfNat.ofNat.{0} @Nat 127 (@instOfNatNat 127))
-//               @UInt32.size)) ↦ @absurd.{0}
-//         (@Eq.{1} @Bool
-//           (@Decidable.decide
-//             (@LT.lt.{0} @Nat @instLTNat
-//               (@OfNat.ofNat.{0} @Nat 127 (@instOfNatNat 127)) @UInt32.size)
-//             (@Nat.decLt (@OfNat.ofNat.{0} @Nat 127 (@instOfNatNat 127))
-//               @UInt32.size)) @Bool.true)
-//         (@LT.lt.{0} @Nat @instLTNat
-//           (@OfNat.ofNat.{0} @Nat 127 (@instOfNatNat 127)) @UInt32.size)
-//         (@Eq.refl.{1} @Bool @Bool.true)
-//         (@ne_true_of_eq_false
-//           (@Decidable.decide
-//             (@LT.lt.{0} @Nat @instLTNat
-//               (@OfNat.ofNat.{0} @Nat 127 (@instOfNatNat 127)) @UInt32.size)
-//             (@Nat.decLt (@OfNat.ofNat.{0} @Nat 127 (@instOfNatNat 127))
-//               @UInt32.size))
-//           (@decide_eq_false
-//             (@LT.lt.{0} @Nat @instLTNat
-//               (@OfNat.ofNat.{0} @Nat 127 (@instOfNatNat 127)) @UInt32.size)
-//             (@Nat.decLt (@OfNat.ofNat.{0} @Nat 127 (@instOfNatNat 127))
-//               @UInt32.size) h_0))) h_InitPrelude_hyg1465) h)
-//   (fun (h :
-//       @LT.lt.{0} @Nat @instLTNat (@OfNat.ofNat.{0} @Nat 127 (@instOfNatNat 127))
-//         @UInt32.size) ↦ (fun (h_InitPrelude_hyg1466 :
-//         @LT.lt.{0} @Nat @instLTNat
-//           (@OfNat.ofNat.{0} @Nat 127 (@instOfNatNat 127))
-//           @UInt32.size) ↦ (fun (h_0 :
-//           @LT.lt.{0} @Nat @instLTNat
-//             (@OfNat.ofNat.{0} @Nat 127 (@instOfNatNat 127)) @UInt32.size) ↦ h_0)
-//       h_InitPrelude_hyg1466) h)
-//   (@Nat.decLt (@OfNat.ofNat.{0} @Nat 127 (@instOfNatNat 127)) @UInt32.size)
 tc.reduceOneStep(Const(Name.ofString("Nat.decLe"), Vector()))(tc.Transparency(true)).toString
 tc.whnf(Const(Name.ofString("Nat.decLe"), Vector())).toString
+tc.whnf(Const(Name.ofString("Nat.decLt"), Vector())).toString
 Try(tc.infer(errorCase.value))
+
+
 IsDefEq.lhs.toString()
-tc.whnf(IsDefEq.lhs.get).toString
+tc.whnf(IsDefEq.lhs.get) == IsDefEq.lhs.get
+val Apps(f, as0) = IsDefEq.lhs.get 
+val Const(n,_) = f
+val major = tc.env.reductions.major(n)
+import tc._
+val as =
+              for ((a, i) <- as0.zipWithIndex)
+                yield if (major(i)) whnf(a) else a
+as.size == as0.size
+as.size 
+as.dropRight(1) == as0.dropRight(1)
+as.last.toString()
+as0.last.toString()
+val Apps(f1, as1) = as.last
+f == f1
+val bl = as1.last
+bl.toString()
+whnf (bl).toString()
 
 Nat.unapply(Const(Name("Nat", "zero"), Vector()))
 Nat.unapply(App(Nat.Succ, Nat.Zero))

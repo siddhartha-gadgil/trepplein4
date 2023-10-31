@@ -13,7 +13,7 @@ case object IsDefEq extends DefEqRes {
 
   var lhs: Option[Expr] = None
   var rhs: Option[Expr] = None
-  }
+}
 final case class NotDefEq(a: Expr, b: Expr) extends DefEqRes
 
 class TypeChecker(
@@ -208,6 +208,36 @@ class TypeChecker(
   }
   def reduceOneStep(fn: Expr, as0: List[Expr])(implicit transparency: Transparency): Option[Expr] =
     fn match {
+      case Const(n @ Name.Str(Name.Str(Name.Anon, "Nat"), op), _) if Set("add", "mul", "pow", "sub", "ble", "beq").contains(op) =>
+        as0 match {
+          case Nat(n) :: Nat(m) :: Nil =>
+            op match {
+              case "ble" =>
+                if (n <= m) Some(Const(Name.ofString("Bool.true"), Vector()))
+                else Some(Const(Name.ofString("Bool.false"), Vector()))
+              case "beq" =>
+                if (n == m) Some(Const(Name.ofString("Bool.true"), Vector()))
+                else Some(Const(Name.ofString("Bool.false"), Vector()))
+              case "add" => Some(NatLit(n + m))
+              case "mul" => Some(NatLit(n * m))
+              case "pow" =>
+                Some(NatLit(math.pow(n.toDouble, m.toDouble).toLong))
+              case "sub" => if (m > n) Some(NatLit(0)) else Some(NatLit(n - m))
+            }
+          case _ if transparency.rho =>
+            val major = env.reductions.major(n)
+            val as =
+              for ((a, i) <- as0.zipWithIndex)
+                yield if (major(i)) whnf(a) else a
+            env.reductions(Apps(fn, as)) match {
+              case Some((result, constraints)) if constraints.forall {
+                case (a, b) => isDefEq(a, b)
+              } =>
+                Some(result)
+              case _ => None
+            }
+          case _ => None
+        }
       case Const(n, _) if transparency.rho =>
         val major = env.reductions.major(n)
         val as =
@@ -287,7 +317,6 @@ class TypeChecker(
               Doc.spread("wrong type: ", ppError(e), " : ", ppError(ty)),
               Doc.spread("inferred type: ", ppError(inferredTy)),
               Doc.spread(ppError(t_), " !=def ", ppError(i_)),
-              Doc.spread(ppError(whnf(t_)), " !=def ", ppError(i_)),
               Doc.spread(
                 Seq[Doc]("stuck on: ") ++ Seq(t_, i_)
                   .flatMap(stuck)
@@ -320,7 +349,10 @@ class TypeChecker(
       case Sort(level) =>
         Sort(Level.Succ(level))
       case Const(name, levels) =>
-        val decl = env.get(name).getOrElse(throw new IllegalArgumentException(s"unknown constant: $name"))
+        val decl = env
+          .get(name)
+          .getOrElse(
+            throw new IllegalArgumentException(s"unknown constant: $name"))
         require(
           decl.univParams.size == levels.size,
           s"incorrect number of universe parameters: $levels, expected ${decl.univParams}")
@@ -374,15 +406,6 @@ class TypeChecker(
         Const(Name("Nat"), Vector())
       case StringLit(n) =>
         Const(Name("String"), Vector())
-      case NatOp(op, n, m) if Set("add", "mul", "pow", "sub", "ble", "beq").contains(op) =>
-        op match {
-          case "ble" => if (n <= m) Const(Name.ofString("Bool.true"), Vector()) else Const(Name.ofString("Bool.false"), Vector())
-          case "beq" => if (n == m) Const(Name.ofString("Bool.true"), Vector()) else Const(Name.ofString("Bool.false"), Vector())
-          case "add" => NatLit(n + m)
-          case "mul" => NatLit(n * m)
-          case "pow" => NatLit(math.pow(n.toDouble, m.toDouble).toLong)
-          case "sub" => if (m > n) NatLit(0) else NatLit(n - m)
-        }
       case Proj(typeName, idx, struct) =>
         val structType = infer(struct)
         val structType_ = whnf(structType)
@@ -409,6 +432,8 @@ class TypeChecker(
               s"Expected Pi-type in projection, got $e")
         }
         typ
-      case App(a, b) => throw new IllegalArgumentException("Unexpectedly matched App when Apps was a case")
+      case App(a, b) =>
+        throw new IllegalArgumentException(
+          "Unexpectedly matched App when Apps was a case")
     })
 }

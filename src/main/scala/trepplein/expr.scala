@@ -684,11 +684,13 @@ object Apps {
 object Nat {
   val Zero = Const(Name("Nat", "zero"), Vector())
   val Succ = Const(Name("Nat", "succ"), Vector())
+  val OfNat = Const(Name("OfNat", "ofNat"), Vector())
 
   def unapply(e: Expr): Option[Long] = e match {
     case NatLit(n) => Some(n)
     case Zero => Some(0)
     case App(Succ, n) => unapply(n).map(_ + 1)
+    // case App(OfNat, NatLit(n)) => Some(n)
     case _ => None
   }
 }
