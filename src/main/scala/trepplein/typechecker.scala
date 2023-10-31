@@ -158,7 +158,7 @@ class TypeChecker(
       case (Proj(typeName1, idx1, struct1), Proj(typeName2, idx2, struct2)) if idx1 == idx2 && typeName1 == typeName2 =>
         // require(as1.isEmpty && as2.isEmpty, "unexpected arguments to projection")
         return checkArgs & checkDefEq(struct1, struct2)
-      case (NatLit(n1), NatLit(n2)) =>
+      case (Nat(n1), Nat(n2)) =>
         return reqDefEq(n1 == n2, e1, e2, "nat literals must be equal")
       case (StringLit(s1), StringLit(s2)) =>
         return reqDefEq(s1 == s2, e1, e2, "string literals must be equal")
@@ -244,7 +244,7 @@ class TypeChecker(
             whnfCore(Apps(x, as))
           case _ => e
         }
-      case NatLit(n) if n < 100 =>
+      case Nat(n) if n < 100 =>
         NatLit.expand(n)
       case _ =>
         reduceOneStep(fn, as) match {

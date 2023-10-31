@@ -680,3 +680,15 @@ object Apps {
   def apply(fn: Expr, as: Expr*): Expr =
     apply(fn, as)
 }
+
+object Nat {
+  val Zero = Const(Name("Nat", "zero"), Vector())
+  val Succ = Const(Name("Nat", "succ"), Vector())
+
+  def unapply(e: Expr): Option[Long] = e match {
+    case NatLit(n) => Some(n)
+    case Zero => Some(0)
+    case App(Succ, n) => unapply(n).map(_ + 1)
+    case _ => None
+  }
+}
