@@ -10,7 +10,10 @@ sealed trait DefEqRes {
 case object IsDefEq extends DefEqRes {
   def forall(rs: Iterable[DefEqRes]): DefEqRes =
     rs.collectFirst { case r: NotDefEq => r }.getOrElse(IsDefEq)
-}
+
+  var lhs: Option[Expr] = None
+  var rhs: Option[Expr] = None
+  }
 final case class NotDefEq(a: Expr, b: Expr) extends DefEqRes
 
 class TypeChecker(
@@ -276,18 +279,17 @@ class TypeChecker(
     checkDefEq(ty, inferredTy) match {
       case IsDefEq =>
       case neq @ NotDefEq(t_, i_) =>
+        IsDefEq.lhs = Some(t_)
+        IsDefEq.rhs = Some(i_)
         throw new IllegalArgumentException(
           Doc
             .stack(
               Doc.spread("wrong type: ", ppError(e), " : ", ppError(ty)),
               Doc.spread("inferred type: ", ppError(inferredTy)),
               Doc.spread(ppError(t_), " !=def ", ppError(i_)),
+              Doc.spread(ppError(whnf(t_)), " !=def ", ppError(i_)),
               Doc.spread(
                 Seq[Doc]("stuck on: ") ++ Seq(t_, i_)
-                  .flatMap(stuck)
-                  .map(ppError)),
-              Doc.spread(
-                Seq[Doc]("stuck on types: ") ++ Seq(infer(t_), infer(i_))
                   .flatMap(stuck)
                   .map(ppError)))
             .render(80))
@@ -372,6 +374,15 @@ class TypeChecker(
         Const(Name("Nat"), Vector())
       case StringLit(n) =>
         Const(Name("String"), Vector())
+      case NatOp(op, n, m) if Set("add", "mul", "pow", "sub", "ble", "beq").contains(op) =>
+        op match {
+          case "ble" => if (n <= m) Const(Name.ofString("Bool.true"), Vector()) else Const(Name.ofString("Bool.false"), Vector())
+          case "beq" => if (n == m) Const(Name.ofString("Bool.true"), Vector()) else Const(Name.ofString("Bool.false"), Vector())
+          case "add" => NatLit(n + m)
+          case "mul" => NatLit(n * m)
+          case "pow" => NatLit(math.pow(n.toDouble, m.toDouble).toLong)
+          case "sub" => if (m > n) NatLit(0) else NatLit(n - m)
+        }
       case Proj(typeName, idx, struct) =>
         val structType = infer(struct)
         val structType_ = whnf(structType)

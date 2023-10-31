@@ -692,3 +692,11 @@ object Nat {
     case _ => None
   }
 }
+
+import Name._
+object NatOp {
+  def unapply(e: Expr): Option[(String, Long, Long)] = e match {
+    case App(App(Const(Str(Str(Anon, "Nat"), op), _), NatLit(n)), NatLit(m)) => Some((op, n, m))
+    case _ => None
+  }
+}

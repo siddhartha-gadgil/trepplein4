@@ -86,6 +86,9 @@ print(tc.whnf(errorCase.value).toString)
 tc.reduceOneStep(Const(Name.ofString("Nat.decLe"), Vector()))(tc.Transparency(true)).toString
 tc.whnf(Const(Name.ofString("Nat.decLe"), Vector())).toString
 Try(tc.infer(errorCase.value))
+IsDefEq.lhs.toString()
+tc.whnf(IsDefEq.lhs.get).toString
+
 Nat.unapply(Const(Name("Nat", "zero"), Vector()))
 Nat.unapply(App(Nat.Succ, Nat.Zero))
 App(Nat.Succ, Nat.Zero).toString
