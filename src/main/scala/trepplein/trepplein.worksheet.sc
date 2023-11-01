@@ -59,3 +59,11 @@ App(Nat.Succ, Nat.Zero).toString
 Nat.Succ.name
 Name.ofString("Nat.mul")
 Str(Str(Anon, "Nat"), "mul") == Name.ofString("Nat.mul")
+
+preEnv.get(Name.ofString("rfl")).get
+preEnv.get(Name.ofString("Nat.decLe")).get.toString
+preEnv.get(Name.ofString("Eq.refl")).get.toString
+
+import Expr._
+tc.infer(Apps(C("Eq.refl", Level.One), C("Nat"), NatLit(3))).toString
+tc.whnf(Apps(C("Eq.refl", Level.One), C("Nat"), NatLit(3))).toString
