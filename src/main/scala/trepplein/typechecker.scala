@@ -210,14 +210,59 @@ class TypeChecker(
   def decLeImpl(n: Long, m: Long): Expr = {
     val prop = Apps(C("Nat.le"), NatLit(n), NatLit(m))
     if (n <= m)
-      Apps(C("Decidable.isTrue"), prop, Apps(C("Nat.le_of_ble_eq_true"), NatLit(n), NatLit(m), Apps(C("Eq.refl", Level.One), C("Nat"), NatLit(n))))
+      Apps(
+        C("Decidable.isTrue"),
+        prop,
+        Apps(
+          C("Nat.le_of_ble_eq_true"),
+          NatLit(n),
+          NatLit(m),
+          Apps(C("Eq.refl", Level.One), C("Nat"), NatLit(n))))
     else
-      Apps(C("Decidable.isFalse"), prop, Apps(C("Nat.not_le_of_not_ble_eq_true"), NatLit(n), NatLit(m), C("Bool.ff_ne_tt")))
+      Apps(
+        C("Decidable.isFalse"),
+        prop,
+        Apps(
+          C("Nat.not_le_of_not_ble_eq_true"),
+          NatLit(n),
+          NatLit(m),
+          C("Bool.ff_ne_tt")))
+  }
+
+  def decEqImpl(n: Long, m: Long): Expr = {
+    val prop = Apps(C("Eq", Level.One), C("Nat"), NatLit(n), NatLit(m))
+    if (n == m)
+      Apps(
+        C("Decidable.isTrue"),
+        prop,
+        Apps(
+          C("Nat.eq_of_beq_eq_true"),
+          NatLit(n),
+          NatLit(m),
+          Apps(C("Eq.refl", Level.One), C("Nat"), NatLit(n))))
+    else
+      Apps(
+        C("Decidable.isFalse"),
+        prop,
+        Apps(
+          C("Nat.ne_of_beq_eq_false"),
+          NatLit(n),
+          NatLit(m),
+          C("Bool.ff_ne_tt")))
   }
 
   def reduceOneStep(fn: Expr, as0: List[Expr])(implicit transparency: Transparency): Option[Expr] =
     fn match {
-      case Const(n @ Name.Str(Name.Str(Name.Anon, "Nat"), op), _) if Set("add", "mul", "pow", "sub", "ble", "beq", "decLe", "decLt").contains(op) =>
+      case Const(n @ Name.Str(Name.Str(Name.Anon, "Nat"), op), _) if Set(
+        "add",
+        "mul",
+        "pow",
+        "sub",
+        "ble",
+        "beq",
+        "decLe",
+        "decLt",
+        "decEq").contains(op) =>
         as0.map(whnf) match {
           case Nat(n) :: Nat(m) :: Nil =>
             op match {
@@ -230,6 +275,7 @@ class TypeChecker(
               case "decLe" => Some(decLeImpl(n, m))
               case "decLt" =>
                 Some(decLeImpl(n + 1, m))
+              case "decEq" => Some(decEqImpl(n, m))
               case "add" => Some(NatLit(n + m))
               case "mul" => Some(NatLit(n * m))
               case "pow" =>
@@ -269,33 +315,38 @@ class TypeChecker(
   def whnf(e: Expr): Expr =
     whnfCache.getOrElseUpdate(e, whnfCore(e)(Transparency.all))
   @tailrec final def whnfCore(
-    e: Expr)(implicit transparency: Transparency = Transparency.all): Expr = {
-    val Apps(fn, as) = e
-    fn match {
-      case Sort(l) => Sort(l.simplify)
-      case Lam(_, _) if as.nonEmpty =>
-        @tailrec def go(fn: Expr, ctx: List[Expr], as: List[Expr]): Expr =
-          (fn, as) match {
-            case (Lam(_, fn_), a :: as_) => go(fn_, a :: ctx, as_)
-            case _ => Apps(fn.instantiate(0, ctx.toVector), as)
+    e: Expr)(implicit transparency: Transparency = Transparency.all): Expr = e match {
+    case Nat(n) =>
+      if (n < 100) NatLit.expand(n) else NatLit(n)
+    case _ => {
+      val Apps(fn, as) = e
+      fn match {
+        case Sort(l) => Sort(l.simplify)
+        case Lam(_, _) if as.nonEmpty =>
+          @tailrec def go(fn: Expr, ctx: List[Expr], as: List[Expr]): Expr =
+            (fn, as) match {
+              case (Lam(_, fn_), a :: as_) => go(fn_, a :: ctx, as_)
+              case _ => Apps(fn.instantiate(0, ctx.toVector), as)
+            }
+          whnfCore(go(fn, Nil, as))
+        case Let(_, value, body) =>
+          whnfCore(Apps(body.instantiate(value), as))
+        case Proj(typeName, idx, struct) =>
+          whnf(struct) match {
+            case Apps(Const(name, _), structParams) if name == env.structIntros(typeName).intro.name =>
+              val x =
+                structParams.drop(env.structIntros(typeName).numParams)(idx)
+              whnfCore(Apps(x, as))
+            case _ => e
           }
-        whnfCore(go(fn, Nil, as))
-      case Let(_, value, body) =>
-        whnfCore(Apps(body.instantiate(value), as))
-      case Proj(typeName, idx, struct) =>
-        whnf(struct) match {
-          case Apps(Const(name, _), structParams) if name == env.structIntros(typeName).intro.name =>
-            val x = structParams.drop(env.structIntros(typeName).numParams)(idx)
-            whnfCore(Apps(x, as))
-          case _ => e
-        }
-      case Nat(n) if n < 100 =>
-        NatLit.expand(n)
-      case _ =>
-        reduceOneStep(fn, as) match {
-          case Some(e_) => whnfCore(e_)
-          case None => e
-        }
+        case Nat(n) =>
+          if (n < 100) NatLit.expand(n) else NatLit(n)
+        case _ =>
+          reduceOneStep(fn, as) match {
+            case Some(e_) => whnfCore(e_)
+            case None => e
+          }
+      }
     }
   }
 

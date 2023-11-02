@@ -32,27 +32,20 @@ tc.whnf(Const(Name.ofString("Nat.decLe"), Vector())).toString
 tc.whnf(Const(Name.ofString("Nat.decLt"), Vector())).toString
 Try(tc.infer(errorCase.value))
 
-
+import Expr._
 IsDefEq.lhs.toString()
 tc.whnf(IsDefEq.lhs.get) == IsDefEq.lhs.get
 val Apps(f, as0) = IsDefEq.lhs.get 
-val Const(n,_) = f
-val major = tc.env.reductions.major(n)
-import tc._
-val as =
-              for ((a, i) <- as0.zipWithIndex)
-                yield if (major(i)) whnf(a) else a
-as.size == as0.size
-as.size 
-as.dropRight(1) == as0.dropRight(1)
-as.last.toString()
-as0.last.toString()
-tc.whnfCore(as0.last).toString()
-val Apps(f1, as1) = as.last
-f == f1
-val bl = as1.last
-bl.toString()
-whnf (bl).toString()
+val rhs = IsDefEq.rhs.get
+tc.whnf(rhs).toString()
+Nat.unapply(rhs)
+val Nat(m) = rhs
+
+val App(f1, as1) = rhs
+Nat.unapply(as1)
+as1.toString()
+val Apps(f2, List(_, n, _)) = as1
+f2.toString()
 
 Nat.unapply(Const(Name("Nat", "zero"), Vector()))
 Nat.unapply(App(Nat.Succ, Nat.Zero))
@@ -65,6 +58,8 @@ preEnv.get(Name.ofString("rfl")).get
 preEnv.get(Name.ofString("Nat.decLe")).get.toString
 preEnv.get(Name.ofString("Eq.refl")).get.toString
 
-import Expr._
+
 tc.infer(Apps(C("Eq.refl", Level.One), C("Nat"), NatLit(3))).toString
 tc.whnf(Apps(C("Eq.refl", Level.One), C("Nat"), NatLit(3))).toString
+tc.infer(Apps(C("Eq.refl", Level.One), C("Nat"), NatLit(3))).toString
+Apps(C("Eq", Level.One), C("Nat"), NatLit(3), NatLit(3)).toString

@@ -695,7 +695,7 @@ object Nat {
     case NatLit(n) => Some(n)
     case Zero => Some(0)
     case App(Succ, n) => unapply(n).map(_ + 1)
-    case App(OfNat, NatLit(n)) => Some(n)
+    case Apps(Const(name, _), List(_, n, _)) if name == Name("OfNat", "ofNat") => unapply(n)
     case _ => None
   }
 }
