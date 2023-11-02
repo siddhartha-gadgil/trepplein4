@@ -42,23 +42,21 @@ private final class LinesParser(
 
   var index = 0
   def hasNext(): Boolean = index < end
-  def cur(): Char = bytes(index).toChar
-  def lookahead(): Char = bytes(index + 1).toChar
+  def cur: Char = bytes(index).toChar
+  def lookahead: Char = bytes(index + 1).toChar
   def next(): Char = {
     if (!hasNext()) throw new IndexOutOfBoundsException
-    val c = cur()
+    val c = cur
     index += 1
     c
   }
   def skip(): Unit = index += 1
 
-  def consume(c: Char): Unit =
-    {
-      val nxt = next()
-      if (nxt != c)
-        throw new IllegalArgumentException(
-          s"expected `$c`, got `${nxt} = ${bytes(index - 1).toChar}` after `${bytes(index - 3).toChar}${bytes(index - 2).toChar}`")
-    }
+  def consume(c: Char): Unit = {
+    val nxt = next()
+    if (nxt != c)
+      throw new IllegalArgumentException(s"expected `$c`, got `${nxt}` after `${bytes(index - 3).toChar}${bytes(index - 2).toChar}`")
+  }
   def consume(s: String): Unit = s.foreach(consume)
 
   def lines(): Vector[ExportFileCommand] = {
@@ -140,10 +138,12 @@ private final class LinesParser(
   def long(): Long =
     next() match {
       case c if '0' <= c && c <= '9' => long(c - '0')
-      case _ => throw new IllegalArgumentException(s"expected digit, got `${bytes(index - 1).toChar}`")
+      case _ =>
+        throw new IllegalArgumentException(
+          s"expected digit, got `${bytes(index - 1).toChar}` after `${bytes(index - 3).toChar}${bytes(index - 2).toChar}`")
     }
   def long(acc: Long): Long =
-    cur() match {
+    cur match {
       case c if '0' <= c && c <= '9' =>
         next()
         long(10 * acc + (c - '0'))
@@ -152,7 +152,7 @@ private final class LinesParser(
 
   def rest(): String = {
     val start = index
-    def nextNL(): Int = if (cur() == '\n') index else { next(); nextNL() }
+    def nextNL(): Int = if (cur == '\n') index else { next(); nextNL() }
     new String(bytes, start, math.max(nextNL() - start, 0), LinesParser.UTF8)
   }
 
@@ -176,7 +176,7 @@ private final class LinesParser(
 
   @inline def restOf[T](p: => T): Vector[T] = {
     val out = Vector.newBuilder[T]
-    while (cur() == ' ') { next(); out += p }
+    while (cur == ' ') { next(); out += p }
     out.result()
   }
 
@@ -205,7 +205,7 @@ private final class LinesParser(
       case 'A' =>
         App(spc(exprRef()), spc(exprRef()))
       case 'L' =>
-        cur() match {
+        cur match {
           case 'N' =>
             skip()
             val n = spc(long())
@@ -213,9 +213,15 @@ private final class LinesParser(
             NatLit(n)
           case 'S' =>
             skip()
-            val byteString = spc(rest())
-            val bytes = byteString.split(" ").map(hex2int(_).toChar)
-            StringLit(bytes.mkString)
+            if (cur == '\n') {
+              // println("Empty string literal")
+              // println(s"After empty string literal; cur = $cur, i.e., ${cur.toChar.toString()}")
+              StringLit("")
+            } else {
+              val byteString = spc(rest())
+              val bytes = byteString.split(" ").map(hex2int(_).toChar)
+              StringLit(bytes.mkString)
+            }
           case c =>
             val b = spc(binderInfo())
             val n = spc(nameRef())

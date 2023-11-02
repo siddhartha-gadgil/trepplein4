@@ -332,12 +332,21 @@ class TypeChecker(
         case Let(_, value, body) =>
           whnfCore(Apps(body.instantiate(value), as))
         case Proj(typeName, idx, struct) =>
-          whnf(struct) match {
+          struct match {
             case Apps(Const(name, _), structParams) if name == env.structIntros(typeName).intro.name =>
               val x =
                 structParams.drop(env.structIntros(typeName).numParams)(idx)
               whnfCore(Apps(x, as))
-            case _ => e
+            case _ =>
+              whnf(struct) match {
+                case Apps(Const(name, _), structParams) if name == env.structIntros(typeName).intro.name =>
+                  val x =
+                    structParams.drop(env.structIntros(typeName).numParams)(idx)
+                  whnfCore(Apps(x, as))
+                case struct_ =>
+                  if (struct_ == struct) e
+                  else whnfCore(Apps(Proj(typeName, idx, struct_), as))
+              }
           }
         case Nat(n) =>
           if (n < 100) NatLit.expand(n) else NatLit(n)

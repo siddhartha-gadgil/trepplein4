@@ -32,20 +32,31 @@ tc.whnf(Const(Name.ofString("Nat.decLe"), Vector())).toString
 tc.whnf(Const(Name.ofString("Nat.decLt"), Vector())).toString
 Try(tc.infer(errorCase.value))
 
-import Expr._
+preEnv.declarations.size
+import Expr._, tc._
 IsDefEq.lhs.toString()
-tc.whnf(IsDefEq.lhs.get) == IsDefEq.lhs.get
+whnf(IsDefEq.lhs.get) == IsDefEq.lhs.get
 val Apps(f, as0) = IsDefEq.lhs.get 
 val rhs = IsDefEq.rhs.get
+rhs.toString()
 tc.whnf(rhs).toString()
-Nat.unapply(rhs)
-val Nat(m) = rhs
+val Proj(typeName, idx, struct) = rhs
+// val Apps(Const(name, _), structParams) = struct
+whnf(struct).toString()
+struct == whnf(struct)
+val Apps(fn, as) = struct
+as.size
+val Proj(typeName1, idx1, struct1) = fn
+struct1 == whnf(struct1)
+struct1.toString()
+println(struct1.toString())
+// env.structIntros(typeName).intro.name
+// errorCase.name.toString()
+// val Apps(f1, as1) = whnf(struct)
+// f1.toString()
 
-val App(f1, as1) = rhs
-Nat.unapply(as1)
-as1.toString()
-val Apps(f2, List(_, n, _)) = as1
-f2.toString()
+
+
 
 Nat.unapply(Const(Name("Nat", "zero"), Vector()))
 Nat.unapply(App(Nat.Succ, Nat.Zero))
