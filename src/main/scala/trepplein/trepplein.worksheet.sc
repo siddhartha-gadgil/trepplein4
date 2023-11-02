@@ -35,7 +35,7 @@ Try(tc.infer(errorCase.value))
 preEnv.declarations.size
 import Expr._, tc._
 IsDefEq.lhs.toString()
-whnf(IsDefEq.lhs.get) == IsDefEq.lhs.get
+// whnf(IsDefEq.lhs.get) == IsDefEq.lhs.get
 val Apps(f, as0) = IsDefEq.lhs.get 
 val rhs = IsDefEq.rhs.get
 rhs.toString()
@@ -50,10 +50,12 @@ val Proj(typeName1, idx1, struct1) = fn
 struct1 == whnf(struct1)
 struct1.toString()
 println(struct1.toString())
+val Apps(Const(name, _), List(typ, zero, step, n)) = struct1
+n.toString()
 // env.structIntros(typeName).intro.name
 // errorCase.name.toString()
 // val Apps(f1, as1) = whnf(struct)
-// f1.toString()
+// f1.toString() 
 
 
 

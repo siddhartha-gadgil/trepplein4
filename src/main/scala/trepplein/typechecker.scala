@@ -311,6 +311,24 @@ class TypeChecker(
       case _ => None
     }
 
+  @tailrec
+  final def natRecImplAux(init: Expr, step: Expr, cur: Long, n: Long): Expr =
+    if (cur == n) init
+    else
+      natRecImplAux(whnf(Apps(step, NatLit(cur), init)), step, cur + 1, n)
+
+  def natRecImpl(zero: Expr, step: Expr, n: Long): Expr = natRecImplAux(zero, step, 0, n)
+
+  object NormNat {
+    def unapply(e: Expr): Option[Long] = e match {
+      case Nat(n) => Some(n)
+      case _ => whnf(e) match {
+        case Nat(n) => Some(n)
+        case _ => None
+      }
+    }
+  }
+
   private val whnfCache = mutable.AnyRefMap[Expr, Expr]()
   def whnf(e: Expr): Expr =
     whnfCache.getOrElseUpdate(e, whnfCore(e)(Transparency.all))
@@ -318,6 +336,8 @@ class TypeChecker(
     e: Expr)(implicit transparency: Transparency = Transparency.all): Expr = e match {
     case Nat(n) =>
       if (n < 100) NatLit.expand(n) else NatLit(n)
+    case Apps(Const(name, _), List(typ, zero, step, NormNat(n))) if name == Name.ofString("Nat.rec") && n > 100 =>
+      natRecImpl(zero, step, n)
     case _ => {
       val Apps(fn, as) = e
       fn match {
