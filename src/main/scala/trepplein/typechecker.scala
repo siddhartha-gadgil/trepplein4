@@ -335,7 +335,7 @@ class TypeChecker(
   @tailrec final def whnfCore(
     e: Expr)(implicit transparency: Transparency = Transparency.all): Expr = e match {
     case Nat(n) =>
-      if (n < 100) NatLit.expand(n) else NatLit(n)
+      if (n < 2) NatLit.expand(n) else NatLit(n)
     case Apps(Const(name, _), List(typ, zero, step, NormNat(n))) if name == Name.ofString("Nat.rec") && n > 100 =>
       natRecImpl(zero, step, n)
     case _ => {
@@ -369,7 +369,7 @@ class TypeChecker(
               }
           }
         case Nat(n) =>
-          if (n < 100) NatLit.expand(n) else NatLit(n)
+          if (n < 2) NatLit.expand(n) else NatLit(n)
         case _ =>
           reduceOneStep(fn, as) match {
             case Some(e_) => whnfCore(e_)
