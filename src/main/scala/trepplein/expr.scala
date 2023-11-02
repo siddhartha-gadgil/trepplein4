@@ -432,10 +432,10 @@ object Expr {
     case StringLit(s) => List()
   }
 
-  object C{
-  def apply(name: String, levels: Level*): Const = Const(Name.ofString(name), levels.toVector)
+  object C {
+    def apply(name: String, levels: Level*): Const = Const(Name.ofString(name), levels.toVector)
 
-}
+  }
 }
 
 /**
@@ -466,8 +466,6 @@ case class Sort(level: Level)
  */
 case class Const(name: Name, levels: Vector[Level])
   extends Expr(varBound = 0, hasLocals = false, hashCode = 37 * name.hashCode)
-
-
 
 /**
  * A local constant.
@@ -697,7 +695,7 @@ object Nat {
     case NatLit(n) => Some(n)
     case Zero => Some(0)
     case App(Succ, n) => unapply(n).map(_ + 1)
-    // case App(OfNat, NatLit(n)) => Some(n)
+    case App(OfNat, NatLit(n)) => Some(n)
     case _ => None
   }
 }

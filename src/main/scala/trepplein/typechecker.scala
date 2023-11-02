@@ -206,10 +206,19 @@ class TypeChecker(
       v: => Expr): Expr =
       instantiationCache.getOrElseUpdate((rr, subst), v)
   }
+  import Expr.C
+  def decLeImpl(n: Long, m: Long): Expr = {
+    val prop = Apps(C("Nat.le"), NatLit(n), NatLit(m))
+    if (n <= m)
+      Apps(C("Decidable.isTrue"), prop, Apps(C("Nat.le_of_ble_eq_true"), NatLit(n), NatLit(m), Apps(C("Eq.refl", Level.One), C("Nat"), NatLit(n))))
+    else
+      Apps(C("Decidable.isFalse"), prop, Apps(C("Nat.not_le_of_not_ble_eq_true"), NatLit(n), NatLit(m), C("Bool.ff_ne_tt")))
+  }
+
   def reduceOneStep(fn: Expr, as0: List[Expr])(implicit transparency: Transparency): Option[Expr] =
     fn match {
-      case Const(n @ Name.Str(Name.Str(Name.Anon, "Nat"), op), _) if Set("add", "mul", "pow", "sub", "ble", "beq").contains(op) =>
-        as0 match {
+      case Const(n @ Name.Str(Name.Str(Name.Anon, "Nat"), op), _) if Set("add", "mul", "pow", "sub", "ble", "beq", "decLe", "decLt").contains(op) =>
+        as0.map(whnf) match {
           case Nat(n) :: Nat(m) :: Nil =>
             op match {
               case "ble" =>
@@ -218,6 +227,9 @@ class TypeChecker(
               case "beq" =>
                 if (n == m) Some(Const(Name.ofString("Bool.true"), Vector()))
                 else Some(Const(Name.ofString("Bool.false"), Vector()))
+              case "decLe" => Some(decLeImpl(n, m))
+              case "decLt" =>
+                Some(decLeImpl(n + 1, m))
               case "add" => Some(NatLit(n + m))
               case "mul" => Some(NatLit(n * m))
               case "pow" =>

@@ -47,6 +47,7 @@ as.size
 as.dropRight(1) == as0.dropRight(1)
 as.last.toString()
 as0.last.toString()
+tc.whnfCore(as0.last).toString()
 val Apps(f1, as1) = as.last
 f == f1
 val bl = as1.last
