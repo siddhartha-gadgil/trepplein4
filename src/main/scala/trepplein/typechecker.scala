@@ -301,7 +301,10 @@ class TypeChecker(
         val as =
           for ((a, i) <- as0.zipWithIndex)
             yield if (major(i)) whnf(a) else a
-        env.reductions(Apps(fn, as)) match {
+        if (n == Name.ofString("Nat.rec") && Nat.unapply(as.last).isDefined) {
+          val List(typ, zero, step, Nat(n)) = as
+          Some(natRecImpl(zero, step, n))
+        } else env.reductions(Apps(fn, as)) match {
           case Some((result, constraints)) if constraints.forall {
             case (a, b) => isDefEq(a, b)
           } =>
@@ -314,12 +317,13 @@ class TypeChecker(
   @tailrec
   final def natRecImplAux(init: Expr, step: Expr, cur: Long, n: Long): Expr =
     if (cur == n) {
-      println("Obtained recursion result")
+      // println("Obtained recursion result")
       init
     } else {
       val next = Apps(step, NatLit(cur), init)
-      println(s"Recursing step $cur of $n")
-      infer(whnf(next))
+      // if (n > 1000) println(s"Recursing step $cur of $n")
+      // infer(whnf(next))
+      // if (n > 1000 && cur == 10) println(s"Simplified: ${whnf(next) != next}; \n\n$next\n\n${whnf(next)}\n\n\n")
       natRecImplAux(whnf(next), step, cur + 1, n)
     }
 
@@ -342,8 +346,8 @@ class TypeChecker(
     e: Expr)(implicit transparency: Transparency = Transparency.all): Expr = e match {
     case Nat(n) =>
       if (n < 2) NatLit.expand(n) else NatLit(n)
-    case Apps(Const(name, _), List(typ, zero, step, NormNat(n))) if name == Name.ofString("Nat.rec") && n > 2 =>
-      natRecImpl(zero, step, n)
+    // case Apps(Const(name, _), List(typ, zero, step, NormNat(n))) if name == Name.ofString("Nat.rec") && n > 2 =>
+    //   natRecImpl(zero, step, n)
     case _ => {
       val Apps(fn, as) = e
       fn match {
