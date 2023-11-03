@@ -137,7 +137,11 @@ object main {
         val env0 = Environment.default
         val preEnv =
           if (opts.parallel) modifications.foldLeft[PreEnvironment](env0)(_.add(_))
-          else modifications.foldLeft[PreEnvironment](env0)(_.addNow(_))
+          else modifications.foldLeft[PreEnvironment](env0) {
+            case (e, d) =>
+              println(d.name)
+              e.addNow(d)
+          }
 
         val notations = Map() ++ exportedCommands.
           collect { case ExportedNotation(not) => not.fn -> not }.

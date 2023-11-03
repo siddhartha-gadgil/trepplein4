@@ -27,9 +27,6 @@ val unint32sizeDecl = preEnv.get(Name.ofString("UInt32.size")).get
 val uint32size = Const(Name.ofString("UInt32.size"), Vector())
 tc.reduceOneStep(uint32size)(tc.Transparency(true)).toString
 print(tc.whnf(errorCase.value).toString)
-tc.reduceOneStep(Const(Name.ofString("Nat.decLe"), Vector()))(tc.Transparency(true)).toString
-tc.whnf(Const(Name.ofString("Nat.decLe"), Vector())).toString
-tc.whnf(Const(Name.ofString("Nat.decLt"), Vector())).toString
 Try(tc.infer(errorCase.value))
 
 preEnv.declarations.size
@@ -40,18 +37,21 @@ val Apps(f, as0) = IsDefEq.lhs.get
 val rhs = IsDefEq.rhs.get
 rhs.toString()
 tc.whnf(rhs).toString()
-val Proj(typeName, idx, struct) = rhs
+IsDefEq.lhs.toString()
+val lhs = IsDefEq.lhs.get
+whnf(lhs).toString()
+// val Proj(typeName, idx, struct) = rhs
 // val Apps(Const(name, _), structParams) = struct
-whnf(struct).toString()
-struct == whnf(struct)
-val Apps(fn, as) = struct
-as.size
-val Proj(typeName1, idx1, struct1) = fn
-struct1 == whnf(struct1)
-struct1.toString()
-println(struct1.toString())
-val Apps(Const(name, _), List(typ, zero, step, n)) = struct1
-n.toString()
+// whnf(struct).toString()
+// struct == whnf(struct)
+// val Apps(fn, as) = struct
+// as.size
+// val Proj(typeName1, idx1, struct1) = fn
+// struct1 == whnf(struct1)
+// struct1.toString()
+// println(struct1.toString())
+// val Apps(Const(name, _), List(typ, zero, step, n)) = struct1
+// n.toString()
 // env.structIntros(typeName).intro.name
 // errorCase.name.toString()
 // val Apps(f1, as1) = whnf(struct)
@@ -71,8 +71,12 @@ preEnv.get(Name.ofString("rfl")).get
 preEnv.get(Name.ofString("Nat.decLe")).get.toString
 preEnv.get(Name.ofString("Eq.refl")).get.toString
 
+tc.reduceOneStep(Const(Name.ofString("Nat.decLe"), Vector()))(tc.Transparency(true)).toString
+tc.whnf(Const(Name.ofString("Nat.decLe"), Vector())).toString
+tc.whnf(Const(Name.ofString("Nat.decLt"), Vector())).toString
 
 tc.infer(Apps(C("Eq.refl", Level.One), C("Nat"), NatLit(3))).toString
 tc.whnf(Apps(C("Eq.refl", Level.One), C("Nat"), NatLit(3))).toString
 tc.infer(Apps(C("Eq.refl", Level.One), C("Nat"), NatLit(3))).toString
 Apps(C("Eq", Level.One), C("Nat"), NatLit(3), NatLit(3)).toString
+

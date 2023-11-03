@@ -313,9 +313,15 @@ class TypeChecker(
 
   @tailrec
   final def natRecImplAux(init: Expr, step: Expr, cur: Long, n: Long): Expr =
-    if (cur == n) init
-    else
-      natRecImplAux(whnf(Apps(step, NatLit(cur), init)), step, cur + 1, n)
+    if (cur == n) {
+      println("Obtained recursion result")
+      init
+    } else {
+      val next = Apps(step, NatLit(cur), init)
+      println(s"Recursing step $cur of $n")
+      infer(whnf(next))
+      natRecImplAux(whnf(next), step, cur + 1, n)
+    }
 
   def natRecImpl(zero: Expr, step: Expr, n: Long): Expr = natRecImplAux(zero, step, 0, n)
 
@@ -336,7 +342,7 @@ class TypeChecker(
     e: Expr)(implicit transparency: Transparency = Transparency.all): Expr = e match {
     case Nat(n) =>
       if (n < 2) NatLit.expand(n) else NatLit(n)
-    case Apps(Const(name, _), List(typ, zero, step, NormNat(n))) if name == Name.ofString("Nat.rec") && n > 100 =>
+    case Apps(Const(name, _), List(typ, zero, step, NormNat(n))) if name == Name.ofString("Nat.rec") && n > 2 =>
       natRecImpl(zero, step, n)
     case _ => {
       val Apps(fn, as) = e
