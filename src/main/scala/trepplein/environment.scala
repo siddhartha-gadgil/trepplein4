@@ -174,11 +174,19 @@ final case class DefMod(
         decl.check(env, tc)
         require(!value.hasVars, "variables in value")
         require(!value.hasLocals, "locals in value")
-        println(s"checking type for $name")
+        // println(s"checking type for $name")
         // val inferredTy = tc.infer(value)
         // println(s"inferred type")
-        tc.checkType(value, ty)
-        println(s"check complete for $name")
+        // if (name.toString != "Nat.Linear.ExprCnstr.denote_toNormPoly")
+        if (name.toString() == "Nat.Linear.ExprCnstr.denote_toNormPoly") {
+          debug.tracing = true
+          println(s"checking type for $name; \n\nty = $ty")
+          println("inferring type")
+          val inferredTy = tc.infer(value)
+          println(s"inferred type: $inferredTy")
+        }
+        tc.checkType(value, ty) // temporary debugging
+        // println(s"check complete for $name")
       }
       def decls: Seq[Declaration] = Seq(decl)
       def rules: Seq[ReductionRule] = Seq(rule)

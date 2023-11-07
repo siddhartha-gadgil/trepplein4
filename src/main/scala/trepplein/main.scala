@@ -5,16 +5,22 @@ import scala.concurrent.Await
 import scala.concurrent.duration.Duration
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class LibraryPrinter(env: PreEnvironment, notations: Map[Name, Notation],
+class LibraryPrinter(
+    env: PreEnvironment,
+    notations: Map[Name, Notation],
     out: String => Unit,
     prettyOptions: PrettyOptions,
     lineWidth: Int = 80,
     printReductions: Boolean = false,
     printDependencies: Boolean = true) {
   private val declsPrinted = mutable.Map[Name, Unit]()
-  def printDecl(name: Name): Unit = declsPrinted.getOrElseUpdate(name, {
+  def printDecl(name: Name): Unit = declsPrinted.getOrElseUpdate(
+    name, {
     val tc = new TypeChecker(env, unsafeUnchecked = true)
-    val pp = new PrettyPrinter(typeChecker = Some(tc), notations = notations, options = prettyOptions)
+    val pp = new PrettyPrinter(
+      typeChecker = Some(tc),
+      notations = notations,
+      options = prettyOptions)
 
     val decl = env(name)
     if (printDependencies) {
@@ -29,11 +35,14 @@ class LibraryPrinter(env: PreEnvironment, notations: Map[Name, Notation],
     if (printReductions && reds.nonEmpty) {
       doc = doc <> "/-" </> Doc.stack(reds.map {
         case ReductionRule(ctx, lhs, rhs, eqs) =>
-          def mkEq(a: Expr, b: Expr): Expr = Apps(Const("Eq", Vector(1)), Sort.Prop, a, b)
-          val term1 = eqs.map((mkEq _).tupled).foldRight(mkEq(lhs, rhs))(_ -->: _)
+          def mkEq(a: Expr, b: Expr): Expr =
+            Apps(Const("Eq", Vector(1)), Sort.Prop, a, b)
+          val term1 =
+            eqs.map((mkEq _).tupled).foldRight(mkEq(lhs, rhs))(_ -->: _)
           val term2 = ctx.foldRight(term1)(Lam(_, _))
           pp.parseBinders(term2) { (ctx_, t) =>
-            Doc.text("reduction") <+> pp.nest(Doc.wordwrap(pp.telescope(ctx_) :+ Doc.text(":"))) </>
+            Doc.text("reduction") <+> pp.nest(
+              Doc.wordwrap(pp.telescope(ctx_) :+ Doc.text(":"))) </>
               pp.pp(t).parens(0).group <> Doc.line
           }
       }) <> "-/" <> Doc.line
@@ -43,13 +52,15 @@ class LibraryPrinter(env: PreEnvironment, notations: Map[Name, Notation],
   })
 
   private val axiomsChecked = mutable.Map[Name, Unit]()
-  def checkAxioms(name: Name): Unit = axiomsChecked.getOrElseUpdate(name, env(name) match {
-    case Declaration(_, _, ty, _, _) =>
-      ty.constants.foreach(checkAxioms)
-      env.value(name).view.flatMap(_.constants).foreach(checkAxioms)
-      if (env.isAxiom(name)) printDecl(name)
-    // TODO: inductive, quotient
-  })
+  def checkAxioms(name: Name): Unit = axiomsChecked.getOrElseUpdate(
+    name,
+    env(name) match {
+      case Declaration(_, _, ty, _, _) =>
+        ty.constants.foreach(checkAxioms)
+        env.value(name).view.flatMap(_.constants).foreach(checkAxioms)
+        if (env.isAxiom(name)) printDecl(name)
+      // TODO: inductive, quotient
+    })
 
   def handleArg(name: Name): Unit = {
     checkAxioms(name)
@@ -70,22 +81,20 @@ class LibraryPrinter(env: PreEnvironment, notations: Map[Name, Notation],
 
 case class MainOpts(
     inputFile: String = "",
-
     parallel: Boolean = true,
-
     printAllDecls: Boolean = false,
     printDecls: Seq[Name] = Seq(),
     printDependencies: Boolean = false,
     printReductions: Boolean = false,
     validLean: Boolean = false,
-
     showImplicits: Boolean = false,
     useNotation: Boolean = true,
     hideProofs: Boolean = true,
     hideProofTerms: Boolean = false) {
   def prettyOpts = PrettyOptions(
     showImplicits = showImplicits,
-    hideProofs = hideProofs, hideProofTerms = hideProofTerms,
+    hideProofs = hideProofs,
+    hideProofTerms = hideProofTerms,
     showNotation = useNotation)
 }
 object MainOpts {
@@ -93,12 +102,16 @@ object MainOpts {
     head("trepplein", "1.1")
     override def showUsageOnError = Some(true)
 
-    opt[Unit]('s', "sequential").action((_, c) => c.copy(parallel = false))
+    opt[Unit]('s', "sequential")
+      .action((_, c) => c.copy(parallel = false))
       .text("type-check declarations on one thread only")
 
-    opt[Unit]('a', "print-all-decls").action((_, c) => c.copy(printAllDecls = true))
+    opt[Unit]('a', "print-all-decls")
+      .action((_, c) => c.copy(printAllDecls = true))
       .text("print all checked declarations")
-    opt[String]('p', "print-decl").unbounded().valueName("decl.name")
+    opt[String]('p', "print-decl")
+      .unbounded()
+      .valueName("decl.name")
       .action((x, c) => c.copy(printDecls = c.printDecls :+ Name.ofString(x)))
       .text("print specified declarations")
     opt[Unit]('d', "print-dependencies")
@@ -108,22 +121,33 @@ object MainOpts {
       .action((_, c) => c.copy(printReductions = true))
       .text("print reduction rules for specified declarations as well")
     opt[Unit]("valid-lean")
-      .action((_, c) => c.copy(validLean = true, printDependencies = true, useNotation = false))
+      .action((_, c) =>
+        c.copy(validLean = true, printDependencies = true, useNotation = false))
       .text("try to produce output that can be parsed again")
 
-    opt[Boolean]("show-implicits").action((x, c) => c.copy(showImplicits = x))
-      .text("show implicit arguments").valueName("yes/no")
-    opt[Boolean]("use-notation").action((x, c) => c.copy(useNotation = x))
-      .text("use notation for infix/prefix/postfix operators").valueName("yes/no")
-    opt[Boolean]("hide-proofs").action((x, c) => c.copy(hideProofs = x))
-      .text("hide proofs of lemmas").valueName("yes/no")
-    opt[Boolean]("hide-proof-terms").action((x, c) => c.copy(hideProofTerms = x))
-      .text("hide all proof terms").valueName("yes/no")
+    opt[Boolean]("show-implicits")
+      .action((x, c) => c.copy(showImplicits = x))
+      .text("show implicit arguments")
+      .valueName("yes/no")
+    opt[Boolean]("use-notation")
+      .action((x, c) => c.copy(useNotation = x))
+      .text("use notation for infix/prefix/postfix operators")
+      .valueName("yes/no")
+    opt[Boolean]("hide-proofs")
+      .action((x, c) => c.copy(hideProofs = x))
+      .text("hide proofs of lemmas")
+      .valueName("yes/no")
+    opt[Boolean]("hide-proof-terms")
+      .action((x, c) => c.copy(hideProofTerms = x))
+      .text("hide all proof terms")
+      .valueName("yes/no")
 
     help("help").text("prints this usage text")
 
-    arg[String]("<file>").required().action((x, c) =>
-      c.copy(inputFile = x)).text("exported file to check")
+    arg[String]("<file>")
+      .required()
+      .action((x, c) => c.copy(inputFile = x))
+      .text("exported file to check")
   }
 }
 
@@ -133,24 +157,33 @@ object main {
       case Some(opts) =>
         val exportedCommands = TextExportParser.parseFile(opts.inputFile)
 
-        val modifications = exportedCommands.collect { case ExportedModification(mod) => mod }
+        val modifications = exportedCommands.collect {
+          case ExportedModification(mod) => mod
+        }
         val env0 = Environment.default
         val preEnv =
-          if (opts.parallel) modifications.foldLeft[PreEnvironment](env0)(_.add(_))
-          else modifications.foldLeft[PreEnvironment](env0) {
-            case (e, d) =>
-              println(d.name)
-              e.addNow(d)
-          }
+          if (opts.parallel)
+            modifications.foldLeft[PreEnvironment](env0)(_.add(_))
+          else
+            modifications.foldLeft[PreEnvironment](env0) {
+              case (e, d) =>
+                println(d.name)
+                e.addNow(d)
+            }
 
-        val notations = Map() ++ exportedCommands.
-          collect { case ExportedNotation(not) => not.fn -> not }.
-          reverse // the beautiful unicode notation is exported first
+        val notations = Map() ++ exportedCommands.collect {
+          case ExportedNotation(not) => not.fn -> not
+        }.reverse // the beautiful unicode notation is exported first
 
-        val printer = new LibraryPrinter(preEnv, notations, print, opts.prettyOpts,
+        val printer = new LibraryPrinter(
+          preEnv,
+          notations,
+          print,
+          opts.prettyOpts,
           printReductions = opts.printReductions,
           printDependencies = opts.printDependencies || opts.printAllDecls)
-        val declsToPrint = if (opts.printAllDecls) preEnv.declarations.keys else opts.printDecls
+        val declsToPrint =
+          if (opts.printAllDecls) preEnv.declarations.keys else opts.printDecls
         if (opts.validLean) print(printer.preludeHeader)
         declsToPrint.foreach(printer.handleArg)
 
@@ -159,8 +192,39 @@ object main {
             for (ex <- exs) println(ex)
             sys.exit(1)
           case Right(env) =>
-            println(s"-- successfully checked ${env.declarations.size} declarations")
+            println(
+              s"-- successfully checked ${env.declarations.size} declarations")
         }
       case _ => sys.exit(1)
     }
+}
+
+object debug {
+  import scala.util._
+  @annotation.tailrec
+  def tillError(
+    env: PreEnvironment,
+    mods: LazyList[Modification]): (PreEnvironment, LazyList[Modification]) = mods match {
+    case head #:: tail =>
+      Try(env.addNow(head)) match {
+        case Success(env1) => tillError(env1, tail)
+        case Failure(_) => (env, mods)
+      }
+    case LazyList() => (env, LazyList())
+  }
+
+  val exportedCommands =
+    TextExportParser.parseFile("/home/gadgil/Downloads/Init.export")
+  val modifications = exportedCommands.collect {
+    case ExportedModification(mod) => mod
+  }
+  val env0 = Environment.default
+
+  lazy val (preEnv, tailMods) = tillError(env0, modifications)
+
+  lazy val tc = new TypeChecker(preEnv)
+
+  var tracing: Boolean = false
+
+  var dumping: Boolean = true
 }

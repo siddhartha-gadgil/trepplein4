@@ -61,6 +61,7 @@ class TypeChecker(
         case (Pi(_, body), t :: ts_) =>
           instantiate(body, ts_, t :: ctx)
         case (_, _ :: _) =>
+          if (debug.tracing) println("Calling whnf from instantiate in NormalizedPis")
           instantiate(whnf(e).ensuring(_.isInstanceOf[Pi]), ts, ctx)
         case (_, Nil) => e.instantiate(0, ctx.toVector)
       }
@@ -124,6 +125,7 @@ class TypeChecker(
   }
 
   private def checkDefEqCore(e1_0: Expr, e2_0: Expr): DefEqRes = {
+    if (debug.tracing) println(s"checking defEq")
     val transparency = Transparency(rho = false)
     val e1 @ Apps(fn1, as1) = whnfCore(e1_0)(transparency)
     val e2 @ Apps(fn2, as2) = whnfCore(e2_0)(transparency)
@@ -251,6 +253,8 @@ class TypeChecker(
           C("Bool.ff_ne_tt")))
   }
 
+  import debug.tracing
+
   def reduceOneStep(fn: Expr, as0: List[Expr])(implicit transparency: Transparency): Option[Expr] =
     fn match {
       case Const(n @ Name.Str(Name.Str(Name.Anon, "Nat"), op), _) if Set(
@@ -263,6 +267,7 @@ class TypeChecker(
         "decLe",
         "decLt",
         "decEq").contains(op) =>
+        if (tracing) println(s"whnf from reduceOneStep for $op")
         as0.map(whnf) match {
           case Nat(n) :: Nat(m) :: Nil =>
             op match {
@@ -298,12 +303,28 @@ class TypeChecker(
         }
       case Const(n, _) if transparency.rho =>
         val major = env.reductions.major(n)
+        if (tracing) println(s"whnf from reduceOneStep for $n, major: $major")
+        if (tracing && n.toString().startsWith("PProd")) {
+          for ((a, i) <- as0.zipWithIndex)
+            if (major(i)) println(s"Normalizing: $i")
+          if (debug.dumping) {
+            for ((a, i) <- as0.zipWithIndex)
+              if (major(i)) println(s"Normalizing term: \n\n${as0(i)}")
+            debug.dumping = false
+          }
+        }
         val as =
           for ((a, i) <- as0.zipWithIndex)
             yield if (major(i)) whnf(a) else a
+        if (tracing) println(s"completed whnf from reduceOneStep for $n, as obtained")
         if (n == Name.ofString("Nat.rec") && Nat.unapply(as.last).isDefined) {
-          val List(typ, zero, step, Nat(n)) = as
-          Some(natRecImpl(zero, step, n))
+          val List(motive, zero, step, Nat(n)) = as
+          // Some(natRecImpl(zero, step, n))
+          if (n > 10000) {
+            println(s"Nat.rec step $n")
+            tracing = true
+          }
+          if (n == 0) Some(zero) else Some(Apps(step, NatLit(n - 1), Apps(fn, motive, zero, step, NatLit(n - 1))))
         } else env.reductions(Apps(fn, as)) match {
           case Some((result, constraints)) if constraints.forall {
             case (a, b) => isDefEq(a, b)
@@ -351,39 +372,56 @@ class TypeChecker(
     case _ => {
       val Apps(fn, as) = e
       fn match {
-        case Sort(l) => Sort(l.simplify)
+        case Sort(l) =>
+          if (tracing) println("whnf for sort")
+          Sort(l.simplify)
         case Lam(_, _) if as.nonEmpty =>
+          if (tracing) println(s"whnfCore: Lam with args: ${as.size}")
           @tailrec def go(fn: Expr, ctx: List[Expr], as: List[Expr]): Expr =
             (fn, as) match {
               case (Lam(_, fn_), a :: as_) => go(fn_, a :: ctx, as_)
               case _ => Apps(fn.instantiate(0, ctx.toVector), as)
             }
-          whnfCore(go(fn, Nil, as))
+          val rec = go(fn, Nil, as)
+          if (tracing) println("Calling whnf from Lambda")
+          whnfCore(rec)
         case Let(_, value, body) =>
+          if (tracing) println("whnf for let")
           whnfCore(Apps(body.instantiate(value), as))
         case Proj(typeName, idx, struct) =>
+          if (tracing) println(s"whnf for structure projection: $typeName, $idx; args: ${as.size}")
           struct match {
             case Apps(Const(name, _), structParams) if name == env.structIntros(typeName).intro.name =>
+              if (tracing) println(s"whnf for structure projection: struct is a constructor: $name")
               val x =
                 structParams.drop(env.structIntros(typeName).numParams)(idx)
               whnfCore(Apps(x, as))
             case _ =>
+              if (tracing) println("whnf for structure projection: struct is not a constructor")
               whnf(struct) match {
                 case Apps(Const(name, _), structParams) if name == env.structIntros(typeName).intro.name =>
+                  if (tracing) println(s"whnf for structure projection: normalized struct obtained and is a constructor: $name")
                   val x =
                     structParams.drop(env.structIntros(typeName).numParams)(idx)
                   whnfCore(Apps(x, as))
                 case struct_ =>
+                  if (tracing) println(s"whnf for structure projection: normalized struct obtained and is not a constructor: $struct_")
                   if (struct_ == struct) e
                   else whnfCore(Apps(Proj(typeName, idx, struct_), as))
               }
           }
         case Nat(n) =>
+          if (tracing) println("whnf for Nat")
           if (n < 2) NatLit.expand(n) else NatLit(n)
         case _ =>
+          if (tracing) println(s"whnf for other")
           reduceOneStep(fn, as) match {
-            case Some(e_) => whnfCore(e_)
-            case None => e
+            case Some(e_) =>
+              if (tracing) println("reduce one step works")
+              whnfCore(e_)
+            case None =>
+              if (tracing) println("No further reduction, returning from whnf")
+              e
           }
       }
     }
@@ -451,6 +489,7 @@ class TypeChecker(
       case Sort(level) =>
         Sort(Level.Succ(level))
       case Const(name, levels) =>
+        if (tracing) println(s"inferring type for $name")
         val decl = env
           .get(name)
           .getOrElse(
@@ -462,6 +501,7 @@ class TypeChecker(
       case LocalConst(of, _) =>
         of.ty
       case Apps(fn, as0) if as0.nonEmpty =>
+        if (tracing) println("inferring type for Apps")
         @tailrec def go(fnt: Expr, as: List[Expr], ctx: List[Expr]): Expr =
           (fnt, as) match {
             case (_, Nil) => fnt.instantiate(0, ctx.toVector)
@@ -470,6 +510,7 @@ class TypeChecker(
                 checkType(a, dom.ty.instantiate(0, ctx.toVector))
               go(body, as_, a :: ctx) // should we be instantiating here?
             case (_, _ :: _) =>
+              if (tracing) println("Calling whnf from Apps in infer")
               whnf(fnt.instantiate(0, ctx.toVector)) match {
                 case fnt_ @ Pi(_, _) => go(fnt_, as, Nil)
                 case _ =>
@@ -479,6 +520,7 @@ class TypeChecker(
           }
         go(infer(fn), as0, Nil)
       case Lam(_, _) =>
+        if (tracing) println("inferring type for Lam")
         def go(e: Expr, ctx: List[LocalConst]): Expr = e match {
           case Lam(dom, body) =>
             val dom_ = dom.copy(ty = dom.ty.instantiate(0, ctx.toVector))
@@ -490,6 +532,7 @@ class TypeChecker(
         }
         go(e, Nil)
       case Pi(_, _) =>
+        if (tracing) println("inferring type for Pi")
         def go(e: Expr, ctx: List[LocalConst]): Level = e match {
           case Pi(dom, body) =>
             val dom_ = dom.copy(ty = dom.ty.instantiate(0, ctx.toVector))
@@ -501,6 +544,7 @@ class TypeChecker(
         }
         Sort(go(e, Nil).simplify)
       case Let(domain, value, body) =>
+        if (tracing) println("inferring type for Let")
         if (shouldCheck) inferUniverseOfType(domain.ty)
         if (shouldCheck) checkType(value, domain.ty)
         infer(body.instantiate(value))
@@ -509,6 +553,7 @@ class TypeChecker(
       case StringLit(n) =>
         Const(Name("String"), Vector())
       case Proj(typeName, idx, struct) =>
+        if (tracing) println("whnf from infer for structure")
         val structType = infer(struct)
         val structType_ = whnf(structType)
         val Apps(structHead, structParams) = structType_
