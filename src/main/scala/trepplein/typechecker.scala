@@ -228,7 +228,7 @@ class TypeChecker(
           C("Nat.not_le_of_not_ble_eq_true"),
           NatLit(n),
           NatLit(m),
-          C("Bool.ff_ne_tt")))
+          C("Bool.not_false'")))
   }
 
   def decEqImpl(n: Long, m: Long): Expr = {
